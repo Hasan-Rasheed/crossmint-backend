@@ -14,6 +14,7 @@ import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '../auth/auth.service';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('merchants')
 export class MerchantsController {
@@ -23,6 +24,25 @@ export class MerchantsController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Onboard a new merchant' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        businessName: { type: 'string', example: 'CryptoStore' },
+        receivingAddress: { type: 'string', example: '0xAbCdEf123456...' },
+        contactInformation: {
+          type: 'string',
+          example: 'Contact information of the merchant',
+        },
+        businessAddress: {
+          type: 'string',
+          example: 'Business address of the merchant',
+        },
+      },
+    },
+  })
+  // @ApiResponse({ status: 201, description: 'Merchant successfully onboarded' })
   async create(@Body() createMerchantDto: CreateMerchantDto) {
     const merchant = await this.merchantsService.create(createMerchantDto);
     const token = await this.authService.createToken(merchant);
@@ -32,27 +52,27 @@ export class MerchantsController {
     };
   }
 
-  @Get()
-  findAll() {
-    return this.merchantsService.findAll();
-  }
+  // @Get()
+  // findAll() {
+  //   return this.merchantsService.findAll();
+  // }
 
-  @Get(':address')
-  @UseGuards(AuthGuard('jwt'))
-  findOne(@Param('address') address: string) {
-    return this.merchantsService.findOne(address);
-  }
+  // @Get(':address')
+  // @UseGuards(AuthGuard('jwt'))
+  // findOne(@Param('address') address: string) {
+  //   return this.merchantsService.findOne(address);
+  // }
 
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateMerchantDto: UpdateMerchantDto,
-  ) {
-    return this.merchantsService.update(+id, updateMerchantDto);
-  }
+  // @Patch(':id')
+  // update(
+  //   @Param('id') id: string,
+  //   @Body() updateMerchantDto: UpdateMerchantDto,
+  // ) {
+  //   return this.merchantsService.update(+id, updateMerchantDto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.merchantsService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.merchantsService.remove(+id);
+  // }
 }
