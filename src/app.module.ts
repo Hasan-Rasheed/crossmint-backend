@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MerchantsModule } from './database/modules/merchants/merchants.module';
+import { MerchantsModule } from './modules/merchants/merchants.module';
+import { AuthModule } from './modules/auth/auth.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -16,6 +18,7 @@ import { MerchantsModule } from './database/modules/merchants/merchants.module';
       synchronize: true,
     }),
     MerchantsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

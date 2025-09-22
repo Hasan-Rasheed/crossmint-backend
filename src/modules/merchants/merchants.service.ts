@@ -11,18 +11,32 @@ export class MerchantsService {
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
   ) {}
-  
+
   async create(merchantData: CreateMerchantDto): Promise<CreateMerchantDto> {
-  const merchant = this.merchantRepository.create(merchantData);
-  return await this.merchantRepository.save(merchant);
-}
+    const merchant = this.merchantRepository.create(merchantData);
+    return await this.merchantRepository.save(merchant);
+  }
+
+  async findByBusinessName(businessName: string): Promise<Merchant | null> {
+    return await this.merchantRepository.findOne({
+      where: { businessName },
+    });
+  }
 
   findAll() {
     return `This action returns all merchants`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} merchant`;
+  async findOne(address: string): Promise<Merchant | null> {
+    return await this.merchantRepository.findOne({
+      where: { receivingAddress: address.toLowerCase() },
+    });
+  }
+
+  async findById(id: number): Promise<Merchant | null> {
+    return await this.merchantRepository.findOne({
+      where: { id },
+    });
   }
 
   update(id: number, updateMerchantDto: UpdateMerchantDto) {

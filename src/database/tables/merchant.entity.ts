@@ -13,7 +13,7 @@ export class Merchant {
 
   @Column()
   businessAddress: string;
-
+  
   @Column()
   receivingAddress: string;
 }
