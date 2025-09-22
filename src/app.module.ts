@@ -12,7 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'root',
+      password: process.env.DB_PASSWORD || 'root',
       database: 'crossmint',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
