@@ -4,9 +4,15 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MerchantsModule } from './modules/merchants/merchants.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CrossmintModule } from './modules/crossmint/crossmint.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -19,6 +25,7 @@ import { AuthModule } from './modules/auth/auth.module';
     }),
     MerchantsModule,
     AuthModule,
+    CrossmintModule,
   ],
   controllers: [AppController],
   providers: [AppService],
