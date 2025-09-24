@@ -15,8 +15,8 @@ export class CrossmintController {
   constructor(private readonly crossmintService: CrossmintService) {}
 
   // step 1
-  // create order
-  @Post('order')
+  // create collection
+  @Post('collection')
   @ApiOperation({ summary: 'Create a new CrossMint collection' })
   create() {
     return this.crossmintService.createCollection();
