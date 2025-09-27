@@ -21,4 +21,12 @@ export class Merchant {
   @Column()
   @ApiProperty({ example: '0x123', description: 'Receiving address of the merchant' })
   receivingAddress: string;
+
+  @Column({ nullable: true })
+  @ApiProperty({ example: '0xabc123...', description: 'Smart contract address for the merchant' })
+  contractAddress?: string;
+
+  @Column({ nullable: true })
+  @ApiProperty({ example: 'col_abc123...', description: 'Crossmint collection ID for the merchant' })
+  collectionId?: string;
 }

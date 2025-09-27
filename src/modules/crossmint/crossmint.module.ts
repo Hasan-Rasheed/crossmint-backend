@@ -7,5 +7,6 @@ import { HttpModule } from '@nestjs/axios';
   imports: [HttpModule],
   controllers: [CrossmintController],
   providers: [CrossmintService],
+  exports: [CrossmintService],
 })
 export class CrossmintModule {}

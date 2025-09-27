@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateCrossmintDto } from './dto/create-crossmint.dto';
 import { UpdateCrossmintDto } from './dto/update-crossmint.dto';
 import axios from 'axios';
+import { Merchant } from 'src/database/tables/merchant.entity';
 
 @Injectable()
 export class CrossmintService {
@@ -11,19 +12,22 @@ export class CrossmintService {
     return 'This action adds a new crossmint';
   }
 
-  async createCollection() {
+  async createCollection(merchant: Merchant) {
     const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
     console.log('api key', API_KEY);
     const url = 'https://staging.crossmint.com/api/2022-06-09/collections';
 
     const body = {
       fungibility: 'non-fungible',
-      transferable: true,
+      transferable: false,
       subscription: { enabled: false },
-      chain: 'solana',
+      chain: 'arbitrum-sepolia',
       metadata: {
-        name: 'test',
-        description: 'this is a testing collection',
+        name: merchant.businessName,
+        description: merchant.businessAddress
+        // payments:{
+        //   recipientAddress: merchant.contractAddress
+        // }
       },
     };
 
@@ -32,16 +36,7 @@ export class CrossmintService {
     try {
       const response: any = await axios.post(
         url,
-        {
-          fungibility: 'non-fungible',
-          transferable: true,
-          subscription: { enabled: false },
-          chain: 'solana',
-          metadata: {
-            name: 'test',
-            description: 'this is a testing collection',
-          },
-        },
+        body,
         {
           headers: {
             'X-API-KEY': API_KEY || '',
@@ -55,7 +50,7 @@ export class CrossmintService {
       return response.data;
     } catch (error) {
       console.error(
-        '❌ Crossmint API error:',
+        '❌ Crossmint Create Collection API error:',
         error.response?.data || error.message,
       );
 

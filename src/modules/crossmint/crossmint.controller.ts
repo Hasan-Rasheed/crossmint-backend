@@ -16,11 +16,11 @@ export class CrossmintController {
 
   // step 1
   // create collection
-  @Post('collection')
-  @ApiOperation({ summary: 'Create a new CrossMint collection' })
-  create() {
-    return this.crossmintService.createCollection();
-  }
+  // @Post('collection')
+  // @ApiOperation({ summary: 'Create a new CrossMint collection' })
+  // create() {
+  //   return this.crossmintService.createCollection();
+  // }
 
   // step 2
   // create template
