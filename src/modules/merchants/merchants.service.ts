@@ -37,7 +37,7 @@ export class MerchantsService {
       this.wallet,
     );
     console.log("before deployment")
-    const contract = await factory.deploy("0xd34f5C6e691aA60577B86FE61914D0Ea650e98a2",merchantData.receivingAddress);
+    const contract = await factory.deploy(process.env.PLATFORM_FEES_RECEIVING_ADDRESS,merchantData.receivingAddress);
     await contract.waitForDeployment();
     console.log("After deployment")
     const contractAddress = await contract.getAddress();
