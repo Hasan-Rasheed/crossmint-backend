@@ -3,18 +3,27 @@ import { CreateCrossmintDto } from './dto/create-crossmint.dto';
 import { UpdateCrossmintDto } from './dto/update-crossmint.dto';
 import axios from 'axios';
 import { Merchant } from 'src/database/tables/merchant.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CrossmintService {
-  constructor() {}
+  private readonly API_KEY: string;
+
+  constructor(
+    private readonly configService: ConfigService,
+  ) {
+    this.API_KEY = this.configService.get<string>(
+      'CROSSMINT_STAGING_API_KEY',
+      '',
+    );
+  }
 
   create(createCrossmintDto: CreateCrossmintDto) {
     return 'This action adds a new crossmint';
   }
 
   async createCollection(merchant: Merchant) {
-    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
-    console.log('api key', API_KEY);
+    console.log('api key', this.API_KEY);
     const url = 'https://staging.crossmint.com/api/2022-06-09/collections';
 
     const body = {
@@ -24,7 +33,7 @@ export class CrossmintService {
       chain: 'arbitrum-sepolia',
       metadata: {
         name: merchant.businessName,
-        description: merchant.businessAddress
+        description: merchant.businessAddress,
         // payments:{
         //   recipientAddress: merchant.contractAddress
         // }
@@ -34,16 +43,12 @@ export class CrossmintService {
     console.log('hit api');
 
     try {
-      const response: any = await axios.post(
-        url,
-        body,
-        {
-          headers: {
-            'X-API-KEY': API_KEY || '',
-            'Content-Type': 'application/json',
-          },
+      const response: any = await axios.post(url, body, {
+        headers: {
+          'X-API-KEY': this.API_KEY || '',
+          'Content-Type': 'application/json',
         },
-      );
+      });
 
       console.log('DONE', response.data);
 
@@ -66,8 +71,7 @@ export class CrossmintService {
 
   async createTemplate(collectionId: string) {
     console.log('collection id', collectionId);
-    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
-    console.log('api key', API_KEY);
+    console.log('api key', this.API_KEY);
     const imageUrl =
       'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
 
@@ -87,7 +91,7 @@ export class CrossmintService {
     try {
       const response = await axios.post(url, body, {
         headers: {
-          'X-API-KEY': API_KEY || '',
+          'X-API-KEY': this.API_KEY || '',
           'Content-Type': 'application/json',
         },
       });
@@ -111,8 +115,7 @@ export class CrossmintService {
   }
 
   async mintNft(collectionId: string, address: string, imageUrl: string) {
-    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
-
+    
     console.log('minting nft...');
 
     const url = `https://staging.crossmint.com/api/2022-06-09/collections/${collectionId}/nfts`;
@@ -129,7 +132,7 @@ export class CrossmintService {
     try {
       const response = await axios.post(url, body, {
         headers: {
-          'X-API-KEY': API_KEY || '',
+          'X-API-KEY': this.API_KEY || '',
           'Content-Type': 'application/json',
         },
       });
@@ -158,13 +161,12 @@ export class CrossmintService {
   }
 
   async checkMintStatus(mintActionId: string) {
-    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
     const url = `https://staging.crossmint.com/api/2022-06-09/actions/${mintActionId}`;
 
     try {
       const response = await axios.get(url, {
         headers: {
-          'X-API-KEY': API_KEY || '',
+          'X-API-KEY': this.API_KEY || '',
           'Content-Type': 'application/json',
         },
       });
@@ -186,6 +188,94 @@ export class CrossmintService {
       );
     }
   }
+
+  async createOrder(
+    chain: string,
+    tokenAddress: string,
+    amount: string,
+    receiptEmail: string,
+    recipientWalletAddress: string,
+  ) {
+    const url = 'https://staging.crossmint.com/api/2022-06-09/orders';
+
+    const tokenLocator = `${chain}:${tokenAddress}`;
+    console.log('env', this.API_KEY);
+    const body = {
+      lineItems: [
+        {
+          // tokenLocator: 'solana:4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // USDC (staging)
+          tokenLocator,
+          executionParameters: {
+            mode: 'exact-in',
+            amount,
+          },
+        },
+      ],
+      payment: {
+        method: 'checkoutcom-flow',
+        receiptEmail,
+      },
+      recipient: {
+        walletAddress: recipientWalletAddress,
+      },
+    };
+
+    try {
+      const response = await axios.post(url, body, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': this.API_KEY || '',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        '❌ Crossmint createOrder error:',
+        error.response?.data || error.message,
+      );
+
+      throw new HttpException(
+        {
+          status: error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          error: error.response?.data || 'Failed to create Crossmint order',
+        },
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getOrderStatus(orderId: string) {
+
+  const url = `https://staging.crossmint.com/api/2022-06-09/orders/${orderId}`;
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.API_KEY,
+      },
+    });
+
+    console.log('res', response.data);
+    console.log('kyc', response.data.payment?.preparation);
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      '❌ Crossmint API error:',
+      error.response?.data || error.message,
+    );
+
+    throw new HttpException(
+      {
+        status: error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        error: error.response?.data || 'Failed to fetch order status',
+      },
+      error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+}
 
   findAll() {
     return `This action returns all crossmint`;

@@ -80,6 +80,69 @@ export class CrossmintController {
     return this.crossmintService.checkMintStatus(mintActionId);
   }
 
+  @Post('order')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        chain: {
+          type: 'string',
+          example: 'solana',
+          description: 'Blockchain chain (e.g., solana, ethereum, polygon)',
+        },
+        tokenAddress: {
+          type: 'string',
+          example: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+          description: 'Token contract address on the specified chain',
+        },
+        amount: { type: 'string', example: '2' },
+        receiptEmail: { type: 'string', example: 'samad13354@gmail.com' },
+        recipientWalletAddress: {
+          type: 'string',
+          example: 'EWQrNVGW86Cd5wjWSgH9ujgUEs5gyBN55tq34nNCrBUW',
+        },
+      },
+      required: [
+        'chain',
+        'tokenAddress',
+        'amount',
+        'receiptEmail',
+        'recipientWalletAddress',
+      ],
+    },
+  })
+  createOrder(
+    @Body()
+    body: {
+      chain: string;
+      tokenAddress: string;
+      amount: string;
+      receiptEmail: string;
+      recipientWalletAddress: string;
+    },
+  ) {
+    const {
+      chain,
+      tokenAddress,
+      amount,
+      receiptEmail,
+      recipientWalletAddress,
+    } = body;
+
+    return this.crossmintService.createOrder(
+      chain,
+      tokenAddress,
+      amount,
+      receiptEmail,
+      recipientWalletAddress,
+    );
+  }
+
+  @Get('order-status/:orderId')
+  getOrderStatus(@Param('orderId') orderId: string) {
+    return this.crossmintService.getOrderStatus(orderId);
+  }
+
   // @Get()
   // findAll() {
   //   return this.crossmintService.findAll();
