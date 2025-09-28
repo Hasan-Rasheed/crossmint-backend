@@ -25,7 +25,7 @@ export class CrossmintController {
   // step 2
   // create template
   @Post('template')
-  @ApiOperation({ summary: 'Onboard a new merchant' })
+  @ApiOperation({ summary: 'Create a new NFT template in a collection' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -34,13 +34,47 @@ export class CrossmintController {
           type: 'string',
           example: 'ac79ea30-390f-47be-93a9-bf3be0ded96a',
         },
+        merchantId: {
+          type: 'string',
+          example: '0a22d53b-2c54-4d98-b4df-1d5a2b7f5678',
+        },
+        metadata: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', example: 'My NFT' },
+            description: { type: 'string', example: 'Exclusive NFT drop' },
+            image: {
+              type: 'string',
+              example:
+                'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi',
+            },
+            symbol: { type: 'string', example: 'MYNFT' },
+          },
+          required: ['name', 'description', 'image', 'symbol'],
+        },
       },
-      required: ['collectionId'],
+      required: ['collectionId', 'merchantId', 'metadata'],
     },
   })
-  createTemplate(@Body() body: { collectionId: string }) {
-    const { collectionId } = body;
-    return this.crossmintService.createTemplate(collectionId);
+  createTemplate(
+    @Body()
+    body: {
+      collectionId: string;
+      merchantId: number;
+      metadata: {
+        description: string;
+        name: string;
+        image: string;
+        symbol: string;
+      };
+    },
+  ) {
+    const { collectionId, merchantId, metadata } = body;
+    return this.crossmintService.createTemplate(
+      collectionId,
+      merchantId,
+      metadata,
+    );
   }
 
   // step 3

@@ -4,6 +4,9 @@ import { UpdateCrossmintDto } from './dto/update-crossmint.dto';
 import axios from 'axios';
 import { Merchant } from 'src/database/tables/merchant.entity';
 import { ConfigService } from '@nestjs/config';
+import { Template } from 'src/database/tables/template.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class CrossmintService {
@@ -11,6 +14,11 @@ export class CrossmintService {
 
   constructor(
     private readonly configService: ConfigService,
+    @InjectRepository(Template)
+    private readonly templateRepository: Repository<Template>,
+
+    @InjectRepository(Merchant)
+    private readonly merchantRepository: Repository<Merchant>,
   ) {
     this.API_KEY = this.configService.get<string>(
       'CROSSMINT_STAGING_API_KEY',
@@ -69,24 +77,19 @@ export class CrossmintService {
     }
   }
 
-  async createTemplate(collectionId: string) {
-    console.log('collection id', collectionId);
-    console.log('api key', this.API_KEY);
-    const imageUrl =
-      'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
-
-    console.log('create template');
-
+  async createTemplate(
+    collectionId: string,
+    merchantId: number,
+    metadata: {
+      description: string;
+      name: string;
+      image: string;
+      symbol: string;
+    },
+  ) {
     const url = `https://staging.crossmint.com/api/2022-06-09/collections/${collectionId}/templates`;
 
-    const body = {
-      metadata: {
-        description: 'testing',
-        name: 'hello',
-        image: imageUrl,
-        symbol: 'ARB',
-      },
-    };
+    const body = { metadata };
 
     try {
       const response = await axios.post(url, body, {
@@ -97,7 +100,28 @@ export class CrossmintService {
       });
 
       console.log('✅ Template created:', response.data);
-      return response.data;
+      const data = response.data;
+
+      const merchant = await this.merchantRepository.findOne({
+        where: { id: merchantId },
+      });
+      if (!merchant) {
+        throw new HttpException('Merchant not found', HttpStatus.NOT_FOUND);
+      }
+
+      console.log('merchant', merchant);
+      const template = this.templateRepository.create({
+        crossmintTemplateId: data.templateId,
+        name: data.metadata.name,
+        description: data.metadata.description,
+        image: data.metadata.image,
+        symbol: data.metadata.symbol,
+        merchant: merchant,
+      });
+
+      const result = await this.templateRepository.save(template);
+      console.log('completed', result);
+      return result;
     } catch (error) {
       console.error(
         '❌ Crossmint API error:',
@@ -113,9 +137,8 @@ export class CrossmintService {
       );
     }
   }
-
+ 
   async mintNft(collectionId: string, address: string, imageUrl: string) {
-    
     console.log('minting nft...');
 
     const url = `https://staging.crossmint.com/api/2022-06-09/collections/${collectionId}/nfts`;
@@ -246,36 +269,35 @@ export class CrossmintService {
   }
 
   async getOrderStatus(orderId: string) {
+    const url = `https://staging.crossmint.com/api/2022-06-09/orders/${orderId}`;
 
-  const url = `https://staging.crossmint.com/api/2022-06-09/orders/${orderId}`;
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.API_KEY,
+        },
+      });
 
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.API_KEY,
-      },
-    });
+      console.log('res', response.data);
+      console.log('kyc', response.data.payment?.preparation);
 
-    console.log('res', response.data);
-    console.log('kyc', response.data.payment?.preparation);
+      return response.data;
+    } catch (error) {
+      console.error(
+        '❌ Crossmint API error:',
+        error.response?.data || error.message,
+      );
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      '❌ Crossmint API error:',
-      error.response?.data || error.message,
-    );
-
-    throw new HttpException(
-      {
-        status: error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-        error: error.response?.data || 'Failed to fetch order status',
-      },
-      error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-    );
+      throw new HttpException(
+        {
+          status: error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          error: error.response?.data || 'Failed to fetch order status',
+        },
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
-}
 
   findAll() {
     return `This action returns all crossmint`;
