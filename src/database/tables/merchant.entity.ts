@@ -37,6 +37,13 @@ export class Merchant {
 
   @Column({ nullable: true })
   @ApiProperty({
+    example: '726.......',
+    description: 'Hash of the image stored on IPFS'
+  })
+  imageIpfsHash: string;
+
+  @Column({ nullable: true })
+  @ApiProperty({
     example: '0xabc123...',
     description: 'Smart contract address for the merchant',
   })

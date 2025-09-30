@@ -8,6 +8,13 @@ import {
   Param,
   Delete,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
+  Query,
+  NotFoundException,
+  Put,
+  HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
@@ -15,6 +22,9 @@ import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '../auth/auth.service';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { Merchant } from 'src/database/tables/merchant.entity';
 
 @Controller('merchants')
 export class MerchantsController {
@@ -42,14 +52,57 @@ export class MerchantsController {
       },
     },
   })
-  // @ApiResponse({ status: 201, description: 'Merchant successfully onboarded' })
-  async create(@Body() createMerchantDto: CreateMerchantDto) {
-    const merchant = await this.merchantsService.create(createMerchantDto);
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() createMerchantDto: CreateMerchantDto,
+  ) {
+    console.log('==============================')
+    console.log('calling create api')
+    // console.log('Body:', body);
+    console.log('File:', file);
+
+    const merchant = await this.merchantsService.create(
+      createMerchantDto,
+      file,
+    );
     const token = await this.authService.createToken(merchant);
     return {
       merchant,
       access_token: token,
     };
+  }
+
+  @Put()
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async updateMerchant(
+    @Body() updateMerchantDto: UpdateMerchantDto,
+    @Query('businessName') businessName: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+   
+    const updatedMerchant = await this.merchantsService.updateMerchant(
+      businessName,
+      updateMerchantDto,
+      file,
+    );
+    return updatedMerchant;
+  }
+
+  @Get()
+  async findByBusinessName(
+    @Query('businessName') businessName: string,
+  ): Promise<Merchant> {
+    const merchant =
+      await this.merchantsService.findByBusinessName(businessName);
+
+    if (!merchant) {
+      throw new NotFoundException(
+        `Merchant with business name "${businessName}" not found`,
+      );
+    }
+
+    return merchant;
   }
 
   // @Get()

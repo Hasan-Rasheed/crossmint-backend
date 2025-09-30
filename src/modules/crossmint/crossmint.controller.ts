@@ -89,7 +89,7 @@ export class CrossmintController {
           type: 'string',
           example: 'ac79ea30-390f-47be-93a9-bf3be0ded96a',
         },
-        address: { type: 'string', example: '9x3k...solanaWalletAddress' },
+        address: { type: 'string', example: '0x123.....' },
         imageUrl: { type: 'string', example: 'https://example.com/nft.png' },
       },
       required: ['collectionId', 'address', 'imageUrl'],
@@ -121,8 +121,8 @@ export class CrossmintController {
       properties: {
         chain: {
           type: 'string',
-          example: 'solana',
-          description: 'Blockchain chain (e.g., solana, ethereum, polygon)',
+          example: 'rbitrum-sepolia',
+          description: 'Blockchain chain (e.g., arbitrum-sepolia)',
         },
         tokenAddress: {
           type: 'string',
