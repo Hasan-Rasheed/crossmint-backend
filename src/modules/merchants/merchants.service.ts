@@ -83,7 +83,16 @@ export class MerchantsService {
       const collection =
         await this.crossmintService.createCollection(merchantEntity);
       console.log('Collection of merchant', collection);
+      const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
+      console.log("image url", imageURL)
 
+      const template = await this.crossmintService.createTemplate(collection.id, merchantEntity.id, {
+        name: merchantData.businessName,
+        description: merchantData.businessAddress,
+        image: imageURL,
+        symbol: merchantData.businessName,
+      });
+      console.log('Template of merchant', template);
       // Add collection ID to merchant entity
       merchantEntity.collectionId = collection.id;
 
@@ -171,8 +180,8 @@ export class MerchantsService {
     });
   }
 
-  findAll() {
-    return `This action returns all merchants`;
+  async findAll(): Promise<Merchant[]> {
+    return await this.merchantRepository.find();
   }
 
   async findOne(address: string): Promise<Merchant | null> {

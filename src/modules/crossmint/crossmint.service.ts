@@ -1,6 +1,7 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Inject } from '@nestjs/common';
 import { CreateCrossmintDto } from './dto/create-crossmint.dto';
 import { UpdateCrossmintDto } from './dto/update-crossmint.dto';
+import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import axios from 'axios';
 import { Merchant } from 'src/database/tables/merchant.entity';
 import { ConfigService } from '@nestjs/config';
@@ -31,24 +32,67 @@ export class CrossmintService {
   }
 
   async createCollection(merchant: Merchant) {
-    console.log('api key', this.API_KEY);
+    console.log("Merchant ", merchant)
     const url = 'https://staging.crossmint.com/api/2022-06-09/collections';
 
     const body = {
-      fungibility: 'non-fungible',
-      transferable: false,
-      subscription: { enabled: false },
-      chain: 'arbitrum-sepolia',
-      metadata: {
-        name: merchant.businessName,
-        description: merchant.businessAddress,
-        // payments:{
-        //   recipientAddress: merchant.contractAddress
-        // }
+    fungibility: 'non-fungible',
+    transferable: false,
+    subscription: { enabled: false },
+    chain: 'arbitrum-sepolia',
+    metadata: {
+      name: merchant.businessName,
+      description: merchant.businessAddress
+    },
+    payments: {  // Changed from 'checkout' to 'payments'
+        price: "1", // You need to specify a price
+        recipientAddress: merchant.contractAddress, // Changed from 'recipient.walletAddress'
+        currency: "usdc" // Moved currency here
+    },
+    checkout: {
+      enabled: true,
+      pricing: {
+        type: "dynamic" 
       },
-    };
+      paymentMethods: {
+        crypto: {
+          enabled: true,
+        },
+        fiat: {
+          enabled: true,
+        }
+      },
+    }
+  };
 
-    console.log('hit api');
+//   const body = {
+//     fungibility: 'non-fungible',
+//     transferable: false,
+//     subscription: { enabled: false },
+//     chain: 'arbitrum-sepolia',
+//     metadata: {
+//         name: merchant.businessName,
+//         description: merchant.businessAddress
+//     },
+//     checkout: {
+//         enabled: true,
+//         pricing: {
+//             type: "dynamic" 
+//         },
+//         paymentMethods: {
+//             crypto: {
+//                 enabled: true,
+//             },
+//             fiat: {
+//                 enabled: true,
+//             }
+//         },
+//         recipientAddress: merchant.contractAddress,
+//         currency: "usdc"
+//     }
+// };
+
+    console.log('hit api =>', body);
 
     try {
       const response: any = await axios.post(url, body, {
@@ -58,8 +102,8 @@ export class CrossmintService {
         },
       });
 
-      console.log('DONE', response.data);
-
+      console.log('Create Collection DONE', response.data);
+  
       return response.data;
     } catch (error) {
       console.error(
@@ -77,19 +121,109 @@ export class CrossmintService {
     }
   }
 
-  async createTemplate(
-    collectionId: string,
-    merchantId: number,
-    metadata: {
-      description: string;
-      name: string;
-      image: string;
-      symbol: string;
-    },
-  ) {
+  async initiatePayment(purchaseData: InitiatePaymentDto) {
+    console.log("Data ==>" , purchaseData)
+    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
+    
+    // Fetch merchant by ID to get collection ID
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: parseInt(purchaseData.merchantId) }
+    });
+    console.log("Merchat ", merchant)
+    if (!merchant || !merchant.collectionId) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Merchant not found or collection not created',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const url = 'https://staging.crossmint.com/api/2022-06-09/orders';
+
+    // Build order based on payment method
+    const nftPrice = 1
+    const mintAmount = 20
+    const order = {
+      recipient: {
+        email: purchaseData.email
+      },
+      payment: purchaseData.method === 'card' 
+        ? {
+            method: "stripe-payment-element",
+            currency: purchaseData.currency
+          }
+        : {
+            method: "arbitrum-sepolia",
+            currency: purchaseData.currency,
+            payerAddress: purchaseData.payerAddress
+          },
+      lineItems: [{
+        collectionLocator: `crossmint:${merchant.collectionId}`,
+        callData: {
+          totalPrice: "10.00",
+          recipientAddress: purchaseData.payerAddress,
+        }
+      }]
+    };
+
+    console.log('Initiating purchase order:', order.lineItems[0].callData);
+    // console.log("Call data ==>", order.lineItems[0].callData)
+
+    try {
+         const response = await fetch(`${url}`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+           "x-api-key": API_KEY || ''
+         },
+         body: JSON.stringify(order),
+       });
+       const res = await response.json()
+       console.log("RESPONSE ", response)
+       if (!response.ok) {
+        console.log("Here")
+        console.log("error response ", res)
+        //  const error = await response.json();
+         throw new Error(res.error);
+        }
+        console.log('✅ Purchase order created:', res);
+      return res;
+    } catch (error) {
+      console.error(
+        '❌ Crossmint Purchase API error:',error ||
+        error.response?.data || error.message,
+      );
+
+      throw new HttpException(
+        {
+          status: error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+          error: error.response?.data || 'Failed to initiate purchase',
+        },
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async createTemplate(collectionId: string, merchantId: number, metadata: {
+    description: string;
+    name: string;
+    image: string;
+    symbol: string;
+  }) {
+    console.log('collection id', collectionId);
+    const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
+    console.log('api key', API_KEY);
+    // const imageUrl =
+    //   'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
+
+    console.log('create template');
+
     const url = `https://staging.crossmint.com/api/2022-06-09/collections/${collectionId}/templates`;
 
     const body = { metadata };
+    console.log("Body in Create Tempalte ", body)
 
     try {
       const response = await axios.post(url, body, {

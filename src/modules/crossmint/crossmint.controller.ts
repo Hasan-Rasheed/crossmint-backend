@@ -8,11 +8,20 @@ import {
   Delete,
 } from '@nestjs/common';
 import { CrossmintService } from './crossmint.service';
+import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { ApiTags, ApiBody, ApiParam, ApiOperation } from '@nestjs/swagger';
 
 @Controller('crossmint')
 export class CrossmintController {
   constructor(private readonly crossmintService: CrossmintService) {}
+
+  @Post('initiatePayment')
+  @ApiOperation({ summary: 'Initiate a purchase order via Crossmint' })
+  @ApiBody({ type: InitiatePaymentDto })
+  initiatePayment(@Body() purchaseData: InitiatePaymentDto) {
+    console.log("purchaseData ==>", purchaseData)
+    return this.crossmintService.initiatePayment(purchaseData);
+  }
 
   // step 1
   // create collection
@@ -50,11 +59,9 @@ export class CrossmintController {
             },
             symbol: { type: 'string', example: 'MYNFT' },
           },
-          required: ['name', 'description', 'image', 'symbol'],
         },
       },
-      required: ['collectionId', 'merchantId', 'metadata'],
-    },
+    }
   })
   createTemplate(
     @Body()

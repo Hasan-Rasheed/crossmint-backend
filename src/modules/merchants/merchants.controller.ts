@@ -105,10 +105,10 @@ export class MerchantsController {
     return merchant;
   }
 
-  // @Get()
-  // findAll() {
-  //   return this.merchantsService.findAll();
-  // }
+  @Get('getAll')
+  findAll() {
+    return this.merchantsService.findAll();
+  }
 
   // @Get(':address')
   // @UseGuards(AuthGuard('jwt'))
