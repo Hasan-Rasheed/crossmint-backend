@@ -76,30 +76,30 @@ export class MerchantsService {
       const contractAddress = await contract.getAddress();
       console.log('Contract Address', contractAddress);
       // create collection against merchant
-      const merchantEntity = this.merchantRepository.create({
+      const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
         contractAddress,
       });
       const collection =
-        await this.crossmintService.createCollection(merchantEntity);
+      await this.crossmintService.createCollection(merchantEntity);
       console.log('Collection of merchant', collection);
-      const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
-      console.log("image url", imageURL)
-
-      const template = await this.crossmintService.createTemplate(collection.id, merchantEntity.id, {
-        name: merchantData.businessName,
-        description: merchantData.businessAddress,
-        image: imageURL,
-        symbol: merchantData.businessName,
-      });
-      console.log('Template of merchant', template);
-      // Add collection ID to merchant entity
       merchantEntity.collectionId = collection.id;
-
       if (imageIpfsHash) {
         merchantEntity.imageIpfsHash = imageIpfsHash;
       }
       const savedMerchant = await this.merchantRepository.save(merchantEntity);
+      const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
+      console.log("image url", imageURL)
+      console.log("collection Id ", collection.id, " Merchant ID ", savedMerchant)
+      const template = await this.crossmintService.createTemplate(collection.id, savedMerchant.id, {
+        name: savedMerchant.businessName,
+        description: savedMerchant.businessAddress,
+        image: imageURL,
+        symbol: savedMerchant.businessName,
+      });
+      console.log('Template of merchant', template);
+      // Add collection ID to merchant entity
+      
       return {
         statusCode: 201,
         success: true,
@@ -134,15 +134,13 @@ export class MerchantsService {
       if (!merchant) {
         throw new Error('Merchant not found');
       }
-      console.log('1111111111111111', file);
+      console.log('File', file);
 
       let imageIpfsHash = null;
       if (file) {
-        console.log('22222222222222222222222222');
         const formData = new FormData();
         formData.append('file', file.buffer, { filename: file.originalname });
 
-        console.log('3333333333333333333333');
         const pinataRes = await axios.post(
           'https://api.pinata.cloud/pinning/pinFileToIPFS',
           formData,
