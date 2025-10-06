@@ -6,6 +6,7 @@ import { MerchantsModule } from './modules/merchants/merchants.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CrossmintModule } from './modules/crossmint/crossmint.module';
 import { ConfigModule } from '@nestjs/config';
+import { WooModule } from './modules/woo/woo.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ConfigModule } from '@nestjs/config';
     MerchantsModule,
     AuthModule,
     CrossmintModule,
+    WooModule,
   ],
   controllers: [AppController],
   providers: [AppService],
