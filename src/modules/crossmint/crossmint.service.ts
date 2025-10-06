@@ -46,7 +46,7 @@ export class CrossmintService {
     },
     payments: {  // Changed from 'checkout' to 'payments'
         price: "1", // You need to specify a price
-        recipientAddress: merchant.contractAddress, // Changed from 'recipient.walletAddress'
+        recipientAddress: merchant.contractAddress?.toString(), // Changed from 'recipient.walletAddress'
         currency: "usdc" // Moved currency here
     },
     checkout: {

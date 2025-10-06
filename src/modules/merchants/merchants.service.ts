@@ -5,8 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Merchant } from 'src/database/tables/merchant.entity';
 import { Repository } from 'typeorm';
 import { response } from 'express';
-import { ethers } from 'ethers';
-import * as contractArtifact from '../../contract/CloakEscrow.json';
+import { ethers, Interface } from 'ethers';
+import * as contractArtifact from '../../contract/CloakEscrowFactory.json';
 import { CrossmintService } from '../crossmint/crossmint.service';
 // import FormData from 'form-data';
 import axios from 'axios';
@@ -18,6 +18,7 @@ export class MerchantsService {
   private wallet: ethers.Wallet;
   private pinataApiKey = process.env.PINATA_API_KEY;
   private pinataSecretApiKey = process.env.PINATA_API_SECRET;
+  private readonly factoryContractAddress = process.env.FACTORY_CONTRACT_ADDRESS;
 
   constructor(
     @InjectRepository(Merchant)
@@ -60,27 +61,40 @@ export class MerchantsService {
         console.log('pinata res', pinataRes.data);
       }
 
-      // 1. Deploy contract
-      const factory = new ethers.ContractFactory(
+      // 1. Use factory contract to deploy escrow
+      const factoryContract = new ethers.Contract(
+        this.factoryContractAddress,
         contractArtifact.abi,
-        contractArtifact.bytecode,
         this.wallet,
       );
       console.log('before deployment');
-      const contract = await factory.deploy(
-        merchantData.receivingAddress, // _merchantAddress
-        process.env.PAYMENT_TOKEN_ADDRESS, // _paymentTokenAddress
-        process.env.PLATFORM_FEES_RECEIVING_ADDRESS, // _platformAddress
-        this.wallet.address, // _owner
+      
+      // Generate merchantId (bytes32) - you might want to use merchant name or a hash
+      const merchantId = ethers.id(merchantData.businessName + merchantData.receivingAddress);
+      console.log("Merchant ID", merchantId)
+      // First, simulate the call to get the escrow address that will be deployed
+      // const escrowAddress = await factoryContract.deployEscrow.staticCall(
+      //   merchantId, // merchantId (bytes32)
+      //   merchantData.receivingAddress.toString(), // merchantAddress
+      //   process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
+      // );
+      // console.log('Escrow Address (simulated):', escrowAddress);
+      
+      // Now execute the actual deployment
+      const deploytx = await factoryContract.deployEscrow(
+        merchantId, // merchantId (bytes32)
+        merchantData.receivingAddress.toString(), // merchantAddress
+        process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
       );
-      await contract.waitForDeployment();
       console.log('After deployment');
-      const contractAddress = await contract.getAddress();
-      console.log('Contract Address', contractAddress);
+      
+      // Wait for transaction to be mined
+      const escrowAddress = await this.getDeployedEscrowAddress(factoryContract, deploytx);
+      console.log('Transaction confirmed',escrowAddress);
       // create collection against merchant
       const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
-        contractAddress,
+        contractAddress: escrowAddress.toString(),
       });
       const collection =
       await this.crossmintService.createCollection(merchantEntity);
@@ -121,6 +135,29 @@ export class MerchantsService {
     }
   }
 
+  async getDeployedEscrowAddress(factoryContract, txResponse) {
+    // Wait for transaction to be mined
+    const receipt = await txResponse.wait();
+  
+    // Create an ethers.js Interface from your factory contract ABI
+    const iface = new Interface(factoryContract.interface.fragments);
+  
+    // Parse logs to find the EscrowDeployed event
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed?.name === "EscrowDeployed") {
+          const escrowAddress = parsed.args.escrowAddress;
+          console.log("✅ Escrow deployed at:", escrowAddress);
+          return escrowAddress;
+        }
+      } catch (err) {
+        // Ignore logs that don't match this interface
+      }
+    }
+  
+    throw new Error("❌ EscrowDeployed event not found in transaction logs");
+  }
   async updateMerchant(
     businessName: string,
     updateMerchantDto: UpdateMerchantDto,
