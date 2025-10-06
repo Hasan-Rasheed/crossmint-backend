@@ -63,15 +63,20 @@ export class MerchantsService {
 
       // 1. Use factory contract to deploy escrow
       const factoryContract = new ethers.Contract(
-        this.factoryContractAddress,
+        this.factoryContractAddress || '',
         contractArtifact.abi,
         this.wallet,
       );
-      console.log('before deployment');
-      
+      const merchantEntity = await this.merchantRepository.create({
+        ...merchantData,
+      });
+      const savedMerchant = await this.merchantRepository.save(merchantEntity);
+
+      const merchantId = savedMerchant.id;
+      console.log('before deployment',typeof merchantId);
       // Generate merchantId (bytes32) - you might want to use merchant name or a hash
-      const merchantId = ethers.id(merchantData.businessName + merchantData.receivingAddress);
-      console.log("Merchant ID", merchantId)
+      // const merchantId = ethers.id(merchantData.businessName + merchantData.receivingAddress);
+      // console.log("Merchant ID", merchantId)
       // First, simulate the call to get the escrow address that will be deployed
       // const escrowAddress = await factoryContract.deployEscrow.staticCall(
       //   merchantId, // merchantId (bytes32)
@@ -79,10 +84,10 @@ export class MerchantsService {
       //   process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
       // );
       // console.log('Escrow Address (simulated):', escrowAddress);
-      
+      const bytes32MerchantId = ethers.encodeBytes32String(merchantId.toString())
       // Now execute the actual deployment
       const deploytx = await factoryContract.deployEscrow(
-        merchantId, // merchantId (bytes32)
+        bytes32MerchantId, // merchantId (bytes32)
         merchantData.receivingAddress.toString(), // merchantAddress
         process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
       );
@@ -92,26 +97,23 @@ export class MerchantsService {
       const escrowAddress = await this.getDeployedEscrowAddress(factoryContract, deploytx);
       console.log('Transaction confirmed',escrowAddress);
       // create collection against merchant
-      const merchantEntity = await this.merchantRepository.create({
-        ...merchantData,
-        contractAddress: escrowAddress.toString(),
-      });
-      const collection =
-      await this.crossmintService.createCollection(merchantEntity);
+      savedMerchant.contractAddress = escrowAddress.toString();
+     
+      const collection = await this.crossmintService.createCollection(savedMerchant);
       console.log('Collection of merchant', collection);
-      merchantEntity.collectionId = collection.id;
+      savedMerchant.collectionId = collection.id;
       if (imageIpfsHash) {
-        merchantEntity.imageIpfsHash = imageIpfsHash;
+        savedMerchant.imageIpfsHash = imageIpfsHash;
       }
-      const savedMerchant = await this.merchantRepository.save(merchantEntity);
       const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
       console.log("image url", imageURL)
       console.log("collection Id ", collection.id, " Merchant ID ", savedMerchant)
-      const template = await this.crossmintService.createTemplate(collection.id, savedMerchant.id, {
-        name: savedMerchant.businessName,
-        description: savedMerchant.businessAddress,
+      const updatedMerchant = await this.merchantRepository.save(savedMerchant);
+      const template = await this.crossmintService.createTemplate(collection.id, updatedMerchant.id, {
+        name: updatedMerchant.businessName,
+        description: updatedMerchant.businessAddress,
         image: imageURL,
-        symbol: savedMerchant.businessName,
+        symbol: updatedMerchant.businessName,
       });
       console.log('Template of merchant', template);
       // Add collection ID to merchant entity
