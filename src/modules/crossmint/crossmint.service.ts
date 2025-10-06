@@ -244,14 +244,17 @@ export class CrossmintService {
       }
 
       console.log('merchant', merchant);
-      const template = this.templateRepository.create({
+      const templateBody = {
         crossmintTemplateId: data.templateId,
-        name: data.metadata.name,
-        description: data.metadata.description,
-        image: data.metadata.image,
-        symbol: data.metadata.symbol,
+        name: metadata.name,
+        description: metadata.description,
+        image: metadata.image,
+        symbol: metadata.symbol,
         merchant: merchant,
-      });
+      }
+      console.log("Template Body ", templateBody)
+
+      const template = this.templateRepository.create(templateBody);
 
       const result = await this.templateRepository.save(template);
       console.log('completed', result);

@@ -6,7 +6,7 @@ import { Merchant } from 'src/database/tables/merchant.entity';
 import { Repository } from 'typeorm';
 import { response } from 'express';
 import { ethers } from 'ethers';
-import * as contractArtifact from '../../contract/CloakEscrowFactory.json';
+import * as contractArtifact from '../../contract/CloakEscrow.json';
 import { CrossmintService } from '../crossmint/crossmint.service';
 // import FormData from 'form-data';
 import axios from 'axios';
@@ -68,8 +68,10 @@ export class MerchantsService {
       );
       console.log('before deployment');
       const contract = await factory.deploy(
-        process.env.PLATFORM_FEES_RECEIVING_ADDRESS,
-        merchantData.receivingAddress,
+        merchantData.receivingAddress, // _merchantAddress
+        process.env.PAYMENT_TOKEN_ADDRESS, // _paymentTokenAddress
+        process.env.PLATFORM_FEES_RECEIVING_ADDRESS, // _platformAddress
+        this.wallet.address, // _owner
       );
       await contract.waitForDeployment();
       console.log('After deployment');
