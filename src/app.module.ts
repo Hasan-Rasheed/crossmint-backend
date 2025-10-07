@@ -8,6 +8,7 @@ import { CrossmintModule } from './modules/crossmint/crossmint.module';
 import { CronModule } from './modules/cron/cron.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { WooModule } from './modules/woo/woo.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuthModule,
     CrossmintModule,
     CronModule,
+    WooModule,
   ],
   controllers: [AppController],
   providers: [AppService],
