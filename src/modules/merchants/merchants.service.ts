@@ -70,8 +70,18 @@ export class MerchantsService {
       const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
       });
-      const savedMerchant = await this.merchantRepository.save(merchantEntity);
+      console.log('merchant entity created', merchantEntity);
+      // let savedMerchant;
+      // try {
 
+      // savedMerchant = await this.merchantRepository.save(merchantEntity);
+      // } catch(err) {
+      //   console.log('in the save merchant catch error', err);
+      // }
+
+      const savedMerchant = await this.merchantRepository.save(merchantEntity);
+ 
+      console.log('merchant saved', savedMerchant);
       const merchantId = savedMerchant.id;
       console.log('before deployment',typeof merchantId);
       // Generate merchantId (bytes32) - you might want to use merchant name or a hash
@@ -84,6 +94,7 @@ export class MerchantsService {
       //   process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
       // );
       // console.log('Escrow Address (simulated):', escrowAddress);
+      console.log('merchant id', merchantId, typeof merchantId);
       const bytes32MerchantId = ethers.encodeBytes32String(merchantId.toString())
       // Now execute the actual deployment
       const deploytx = await factoryContract.deployEscrow(

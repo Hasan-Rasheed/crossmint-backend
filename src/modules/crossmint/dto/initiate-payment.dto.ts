@@ -11,6 +11,11 @@ export class InitiatePaymentDto {
   @ApiProperty({ example: 'customer@email.com', description: 'Customer email address' })
   email: string;
 
+
+  @IsString()
+  @ApiProperty({ example: 'https://store.example.com', description: 'Store URL' })
+  storeUrl: string;
+
   @IsString()
   @IsIn(['card', 'crypto'])
   @ApiProperty({ 

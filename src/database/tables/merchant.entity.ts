@@ -6,7 +6,7 @@ import { Template } from './template.entity';
 export class Merchant {
   @PrimaryGeneratedColumn()
   id: number;
-
+ 
   @Column()
   @ApiProperty({
     example: 'CoffeeShopX',
@@ -58,4 +58,11 @@ export class Merchant {
 
   @OneToMany(() => Template, (template) => template.merchant)
   templates: Template[];
+
+  @Column({ nullable: true })
+  @ApiProperty({
+    example: 'https://coffeeshopx.com',
+    description: 'Store URL',
+  })
+  storeUrl: string;
 }

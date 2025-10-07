@@ -16,4 +16,8 @@ export class CreateMerchantDto {
   @IsString()
   @IsNotEmpty()
   receivingAddress: string;
+
+  @IsString()
+  @IsNotEmpty()
+  storeUrl: string;
 }

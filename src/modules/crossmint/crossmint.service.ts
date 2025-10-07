@@ -127,7 +127,9 @@ export class CrossmintService {
     
     // Fetch merchant by ID to get collection ID
     const merchant = await this.merchantRepository.findOne({
-      where: { id: parseInt(purchaseData.merchantId) }
+      // where: { id: parseInt(purchaseData.merchantId) }
+      where: { storeUrl: purchaseData.storeUrl }
+
     });
     console.log("Merchat ", merchant)
     if (!merchant || !merchant.collectionId) {
