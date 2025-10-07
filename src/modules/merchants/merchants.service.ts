@@ -110,8 +110,8 @@ export class MerchantsService {
       console.log("collection Id ", collection.id, " Merchant ID ", savedMerchant)
       const updatedMerchant = await this.merchantRepository.save(savedMerchant);
       const template = await this.crossmintService.createTemplate(collection.id, updatedMerchant.id, {
-        name: updatedMerchant.businessName,
-        description: updatedMerchant.businessAddress,
+        name: `Purchase Receipt - ${updatedMerchant.businessName}`,
+        description: "NFT Minted Purchase Receipt",
         image: imageURL,
         symbol: updatedMerchant.businessName,
       });

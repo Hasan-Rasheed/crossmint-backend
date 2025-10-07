@@ -41,11 +41,11 @@ export class CrossmintService {
     subscription: { enabled: false },
     chain: 'arbitrum-sepolia',
     metadata: {
-      name: merchant.businessName,
-      description: merchant.businessAddress
+      name: `Purchase Receipt - ${merchant.businessName}`,
+      description: "NFT Minted Purchase Receipt"
     },
     payments: {  // Changed from 'checkout' to 'payments'
-        price: "1", // You need to specify a price
+        price: "10.00", // You need to specify a price
         recipientAddress: merchant.contractAddress?.toString(), // Changed from 'recipient.walletAddress'
         currency: "usdc" // Moved currency here
     },
@@ -162,7 +162,7 @@ export class CrossmintService {
       lineItems: [{
         collectionLocator: `crossmint:${merchant.collectionId}`,
         callData: {
-          totalPrice: "10.00",
+          totalPrice: "4.00",
           recipientAddress: purchaseData.payerAddress,
         }
       }]
