@@ -15,10 +15,15 @@ import {
 import { CrossmintService } from './crossmint.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { ApiTags, ApiBody, ApiParam, ApiOperation } from '@nestjs/swagger';
+import { OrderService } from '../orders/orders.service';
+import { WooService } from '../woo/woo.service';
 
 @Controller('crossmint')
 export class CrossmintController {
-  constructor(private readonly crossmintService: CrossmintService) {}
+  constructor(private readonly crossmintService: CrossmintService,     
+    private readonly orderService: OrderService,
+      private readonly WooService: WooService,
+) {}
 
   @Post('initiatePayment')
   @ApiOperation({ summary: 'Initiate a purchase order via Crossmint' })
@@ -29,7 +34,7 @@ export class CrossmintController {
   }
 
 
-  // ngrok/crossmint/webhhook
+  //  https://16a90e813892.ngrok-free.app/crossmint/webhook
 
   @Post('webhook')
   async handleWebhook(
@@ -39,26 +44,47 @@ export class CrossmintController {
     @Res() res: Response
   ) {
     try {
+      console.log('calling webhook');
       // ✅ Step 1: Verify signature (recommended, see step 3)
       console.log('Signature:', signature);
 
       // ✅ Step 2: Handle event type
       const eventType = body?.type;
+      console.log('event type', eventType);
       console.log('Received Crossmint event:', eventType);
+      console.log('Event data:', body.data);
 
-      switch (eventType) {
-        case 'transaction.successful':
-          // Handle successful transaction
-          console.log('Transaction successful:', body.data);
-          break;
 
-        case 'transaction.failed':
-          console.log('Transaction failed:', body.data);
-          break;
+      if(eventType == 'orders.payment.succeeded') {
+      const order = await this.orderService.findByCrossmintId(body.data.orderId);
+      console.log('order', order);
 
-        default:
-          console.log('Unhandled event:', eventType);
+
+    const orderPaidResult = await this.WooService.markOrderPaid(Number(order.wooId), 'processing')
+    console.log('order paid result', orderPaidResult);
+
+
+    // update order to paid in our db
+
+     const createOrder = await this.orderService.updateStatusByWooId(order.wooId, 'processing'); 
+
+    console.log('create order', createOrder);
       }
+      
+
+      // switch (eventType) {
+      //   case 'transaction.successful':
+      //     // Handle successful transaction
+      //     console.log('Transaction successful:', body.data);
+      //     break;
+
+      //   case 'transaction.failed':
+      //     console.log('Transaction failed:', body.data);
+      //     break;
+
+      //   default:
+      //     console.log('Unhandled event:', eventType);
+      // }
 
     } catch (error) {
       console.error('Error handling webhook:', error);

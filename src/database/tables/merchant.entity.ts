@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Template } from './template.entity';
-
+import { Order } from './order.entity';
 @Entity()
 export class Merchant {
   @PrimaryGeneratedColumn()
@@ -65,4 +65,7 @@ export class Merchant {
     description: 'Store URL',
   })
   storeUrl: string;
+
+  @OneToMany(() => Order, order => order.merchant)
+  orders: Order[];
 }

@@ -49,4 +49,7 @@ export class InitiatePaymentDto {
 
   @IsArray()
   cartData: any[];
+
+  @IsString()
+  orderId: string;
 } 

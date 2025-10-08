@@ -1,3 +1,4 @@
+import { WooService } from './../woo/woo.service';
 import { HttpException, HttpStatus, Injectable, Inject } from '@nestjs/common';
 import { CreateCrossmintDto } from './dto/create-crossmint.dto';
 import { UpdateCrossmintDto } from './dto/update-crossmint.dto';
@@ -8,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Template } from 'src/database/tables/template.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { OrderService } from '../orders/orders.service';
 
 @Injectable()
 export class CrossmintService {
@@ -17,6 +19,8 @@ export class CrossmintService {
     private readonly configService: ConfigService,
     @InjectRepository(Template)
     private readonly templateRepository: Repository<Template>,
+    private readonly orderService: OrderService,
+    private readonly WooService: WooService,
 
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
@@ -141,7 +145,6 @@ export class CrossmintService {
         HttpStatus.NOT_FOUND,
       );
     }
-
     const url = 'https://staging.crossmint.com/api/2022-06-09/orders';
 
     // Build order based on payment method
@@ -164,7 +167,7 @@ export class CrossmintService {
       lineItems: [{
         collectionLocator: `crossmint:${merchant.collectionId}`,
         callData: {
-          totalPrice: "4.00",
+          totalPrice: purchaseData.totalPrice,
           recipientAddress: purchaseData.payerAddress,
         }
       }]
@@ -186,11 +189,38 @@ export class CrossmintService {
        console.log("RESPONSE ", response)
        if (!response.ok) {
         console.log("Here")
-        console.log("error response ", res)
+        console.log("error response ", res) 
         //  const error = await response.json();
          throw new Error(res.error);
         }
-        console.log('✅ Purchase order created:', res);
+        console.log('res from crossmint', res);
+        // add an entry to the db
+    // store
+    // orders ka table
+    // merchant id, woo commerce order id, crossmint order id, status = 'awaiting-payment' and store url
+
+        const { merchantId, storeUrl, orderId } = purchaseData;
+
+      console.log('params', merchantId, res.order.orderId, orderId, storeUrl);
+
+     const createOrder = await this.orderService.create({
+      merchantId: Number(merchantId),
+      crossmintId: res.order.orderId,
+      wooId: orderId,
+      storeUrl: storeUrl,
+      status: 'awaiting-payment',
+    });
+
+    console.log('create order', createOrder);
+
+ 
+    // webhook mai
+    // crossmint order id se woo commerce id aur status 'processing' and redirect and mark our status paid/completed
+
+
+    // const orderPaidResult = await this.WooService.markOrderPaid(Number(createOrder.wooId))
+    // console.log('order paid result', orderPaidResult);
+        // console.log('✅ Purchase order created:', res);
       return res;
     } catch (error) {
       console.error(

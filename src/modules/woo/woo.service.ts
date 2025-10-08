@@ -29,16 +29,28 @@ export class WooService {
     };
   }
 
-  async markOrderPaid(orderId: number) {
-    await axios.put(
+  async markOrderPaid(orderId: number, status: string) {
+    console.log('calling mark order paid', orderId)
+    console.log('env', process.env.WORDPRESS_USERNAME, process.env.WORDPRESS_PASSWORD)
+    try {
+    const orderPaid = await axios.put(
       `http://localhost:10003/wp-json/wc/v3/orders/${orderId}`,
-      { status: 'completed' },
+      { status },
       {
-        auth: { username: 'API_USER', password: 'API_PASSWORD' },
+        auth: {
+          username: process.env.WORDPRESS_USERNAME || '',
+          password: process.env.WORDPRESS_PASSWORD || '',
+        },
       },
     );
 
+    console.log('orderPaid', orderPaid)
+
     console.log(`Order ${orderId} marked as completed`);
+    } catch(err) {
+      console.error('Error marking order as paid:', err);
+    }
+
   }
 
   processedOrders = new Set<number>();
@@ -51,7 +63,7 @@ export class WooService {
 
     if (status === 'processing') {
       // Mark order as Paid in WooCommerce
-      await this.markOrderPaid(orderId);
+      await this.markOrderPaid(orderId, 'completed');
 
       // Add to processed set
       this.processedOrders.add(orderId);
