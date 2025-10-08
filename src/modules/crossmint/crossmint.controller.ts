@@ -6,6 +6,11 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
+  Req,
+  Res,
+  HttpStatus,
+  Headers as NestHeaders
 } from '@nestjs/common';
 import { CrossmintService } from './crossmint.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
@@ -22,6 +27,44 @@ export class CrossmintController {
     console.log("purchaseData ==>", purchaseData)
     return this.crossmintService.initiatePayment(purchaseData);
   }
+
+
+  // ngrok/crossmint/webhhook
+
+  @Post('webhook')
+  async handleWebhook(
+    @NestHeaders('x-crossmint-signature') signature: string,
+    @Body() body: any,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    try {
+      // ✅ Step 1: Verify signature (recommended, see step 3)
+      console.log('Signature:', signature);
+
+      // ✅ Step 2: Handle event type
+      const eventType = body?.type;
+      console.log('Received Crossmint event:', eventType);
+
+      switch (eventType) {
+        case 'transaction.successful':
+          // Handle successful transaction
+          console.log('Transaction successful:', body.data);
+          break;
+
+        case 'transaction.failed':
+          console.log('Transaction failed:', body.data);
+          break;
+
+        default:
+          console.log('Unhandled event:', eventType);
+      }
+
+    } catch (error) {
+      console.error('Error handling webhook:', error);
+    }
+  }
+
 
   // step 1
   // create collection
