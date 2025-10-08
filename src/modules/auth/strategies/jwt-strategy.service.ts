@@ -1,26 +1,38 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { MerchantsService } from 'src/modules/merchants/merchants.service';
+import { JWT_CONFIG } from '../../../config/jwt.config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private readonly merchatService: MerchantsService) {
+  constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: true,
-      secretOrKey: process.env.JWT_SECRET || 'your_jwt_secret',
+      ignoreExpiration: false,
+      secretOrKey: JWT_CONFIG.secret,
     });
   }
 
   async validate(payload: any) {
-    console.log('valdating user with payload: ', payload);
-    const user = await this.merchatService.findById(payload.sub);
-    console.log('👤 Request by user: ', user);
+    console.log('Validating JWT payload:', payload);
 
-    if (!user) {
-      throw new UnauthorizedException();
+    // Check if payload has required fields
+    if (!payload.sub || !payload.email) {
+      console.log('❌ Invalid payload - missing sub or email');
+      throw new UnauthorizedException('Invalid token payload');
     }
+
+    // Return user info from token
+    // For admins: payload has { sub, email, name, role: 'admin' }
+    // For merchants: payload has { sub, email, ... }
+    const user = {
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role || 'user',
+    };
+
+    console.log('✅ JWT validated for user:', user.email, 'Role:', user.role);
     return user;
   }
 }

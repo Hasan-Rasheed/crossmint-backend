@@ -6,6 +6,7 @@ import { MerchantsModule } from './modules/merchants/merchants.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CrossmintModule } from './modules/crossmint/crossmint.module';
 import { CronModule } from './modules/cron/cron.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WooModule } from './modules/woo/woo.module';
@@ -32,6 +33,7 @@ import { WooModule } from './modules/woo/woo.module';
     CrossmintModule,
     CronModule,
     WooModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
