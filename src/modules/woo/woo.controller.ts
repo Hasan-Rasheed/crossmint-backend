@@ -11,7 +11,7 @@ export class WooController {
   @Post('create')
   async createPayment(@Body() payload: any) {
     // return this.wooService.createPayment(payload);
-    console.log('create payment', payload);
+    // console.log('create payment', payload);
     return {
       status: 'paid',
       transactionId: 'TX_TEST_073',
@@ -65,17 +65,19 @@ export class WooController {
   }
 
   @Post('payment-success')
-  async handlePaymentSuccess(@Body() body: any) {
-    const { orderId, transactionId } = body;
+  async handlePaymentSuccess(@Body() body: { orderId: string, status: string }) {
+    const { orderId, status } = body;
 
-    console.log(`Payment success for Order ${orderId}, Tx: ${transactionId}`);
+    console.clear();
+    console.log('calling payment success api')
+    console.log(`Payment success for Order ${orderId}`);
 
     try {
       const res = await axios.put(
         `http://localhost:10003/wp-json/wc/v3/orders/${orderId}`,
         {
-          status: 'completed',
-          transaction_id: transactionId,
+          status,
+          // transaction_id: transactionId,
         },
         {
           auth: {  
