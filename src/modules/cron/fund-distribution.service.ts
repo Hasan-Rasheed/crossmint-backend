@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 import { ethers } from 'ethers';
 import { Merchant } from '../../database/tables/merchant.entity';
+import { Distribution } from '../../database/tables/distribution.entity';
 import * as contractArtifact from '../../contract/CloakEscrow.json';
 
 @Injectable()
@@ -15,6 +16,8 @@ export class FundDistributionService {
   constructor(
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
+    @InjectRepository(Distribution)
+    private readonly distributionRepository: Repository<Distribution>,
   ) {
     this.provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const privateKey = process.env.PRIVATE_KEY;
@@ -122,6 +125,24 @@ export class FundDistributionService {
       const receipt = await distributeTx.wait();
       
       this.logger.log(`Funds distributed for merchant ${merchant.id}. Transaction: ${receipt.hash}`);
+
+      // Calculate amounts (90% merchant, 10% platform)
+      const totalAmount = Number(ethers.formatEther(balance));
+      const merchantAmount = totalAmount * 0.9;
+      const platformFees = totalAmount * 0.1;
+
+      // Save distribution record to database
+      const distributionRecord = this.distributionRepository.create({
+        merchantId: merchant.id,
+        totalAmount,
+        merchantAmount,
+        platformFees,
+        transactionHash: receipt.hash,
+        status: 'completed',
+      });
+
+      await this.distributionRepository.save(distributionRecord);
+      this.logger.log(`Distribution record saved for merchant ${merchant.id}`);
 
       return {
         success: true,

@@ -7,6 +7,8 @@ import * as crypto from 'crypto';
 import { Admin } from '../../database/tables/admin.entity';
 import { Otp } from '../../database/tables/otp.entity';
 import { Merchant } from '../../database/tables/merchant.entity';
+import { Order } from '../../database/tables/order.entity';
+import { Distribution } from '../../database/tables/distribution.entity';
 import { EmailService } from './email.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { RequestOtpDto } from './dto/request-otp.dto';
@@ -25,6 +27,10 @@ export class AdminService {
     private readonly otpRepository: Repository<Otp>,
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(Distribution)
+    private readonly distributionRepository: Repository<Distribution>,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
   ) {}
@@ -462,5 +468,192 @@ export class AdminService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  // Dashboard: Get comprehensive analytics
+  async getDashboardAnalytics() {
+    try {
+      // Note: You'll need to create Order entity and related tables
+      // This is a placeholder structure showing what data to collect
+      
+      const analytics = {
+        merchants: await this.getMerchantAnalytics(),
+        platform: await this.getPlatformAnalytics(),
+        payments: await this.getPaymentAnalytics(),
+        distributions: await this.getDistributionAnalytics(),
+      };
+
+      return {
+        statusCode: 200,
+        success: true,
+        message: 'Analytics retrieved successfully',
+        data: analytics,
+      };
+    } catch (error) {
+      this.logger.error('Error getting analytics:', error);
+      throw new HttpException(
+        'Failed to retrieve analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  private async getMerchantAnalytics() {
+    const merchants = await this.merchantRepository.find();
+    
+    const merchantsWithAnalytics = await Promise.all(
+      merchants.map(async (merchant) => {
+        // Get orders using relation
+        const allOrders = await this.orderRepository.find({ 
+          where: { merchant: { id: merchant.id } },
+          relations: ['merchant']
+        });
+        
+        const totalOrdersCreated = allOrders.length;
+        
+        const paidOrders = allOrders.filter(order => order.status === 'paid');
+        const totalOrdersPaid = paidOrders.length;
+        
+        // Get actual amounts from distributions (since Order doesn't store amount)
+        const distributions = await this.distributionRepository.find({
+          where: { merchantId: merchant.id }
+        });
+        
+        // Calculate totals from distributions
+        const totalAmountDistributed = distributions.reduce((sum, dist) => sum + Number(dist.totalAmount), 0);
+        const merchantShare = distributions.reduce((sum, dist) => sum + Number(dist.merchantAmount), 0);
+        const platformFees = distributions.reduce((sum, dist) => sum + Number(dist.platformFees), 0);
+        const actuallyReceived = distributions.filter(d => d.status === 'completed')
+          .reduce((sum, dist) => sum + Number(dist.merchantAmount), 0);
+        
+        // Calculate pending amount
+        const pendingAmount = merchantShare - actuallyReceived;
+
+        return {
+          businessName: merchant.businessName,
+          contactInformation: merchant.contactInformation,
+          businessAddress: merchant.businessAddress,
+          receivingAddress: merchant.receivingAddress,
+          contractAddress: merchant.contractAddress,
+          collectionId: merchant.collectionId,
+          storeURL: merchant.storeUrl,
+          totalOrdersCreated,
+          totalOrdersPaid,
+          totalShareAmount: merchantShare, // 90% of total paid by customers
+          totalFeesGenerated: platformFees, // 10% of total paid by customers
+          actuallyReceivedFromPayouts: actuallyReceived,
+          pendingAmountToBeReceived: pendingAmount,
+        };
+      })
+    );
+
+    return {
+      totalMerchants: merchants.length,
+      activeMerchants: merchants.filter(m => m.contractAddress).length,
+      merchants: merchantsWithAnalytics,
+    };
+  }
+
+  private async getPlatformAnalytics() {
+    // Get all distributions
+    const allDistributions = await this.distributionRepository.find();
+    
+    // Calculate total fees generated (10% from all paid orders)
+    const totalFeesGenerated = allDistributions.reduce((sum, dist) => sum + Number(dist.platformFees), 0);
+    
+    // Calculate total fees actually received (completed distributions only)
+    const completedDistributions = allDistributions.filter(d => d.status === 'completed');
+    const totalFeesReceived = completedDistributions.reduce((sum, dist) => sum + Number(dist.platformFees), 0);
+    
+    // Calculate pending fees
+    const pendingFees = totalFeesGenerated - totalFeesReceived;
+
+    return {
+      vaultAddress: process.env.PLATFORM_FEES_RECEIVING_ADDRESS,
+      totalFeesGeneratedFromMerchants: totalFeesGenerated,
+      totalFeesActuallyReceived: totalFeesReceived,
+      totalPendingPaymentFromDailyDistribution: pendingFees,
+    };
+  }
+
+  private async getPaymentAnalytics() {
+    // TODO: Implement Crossmint payment tracking when needed
+    return {
+      pendingPayments: [],
+      receivedPayments: [],
+      expectedDistributions: [],
+    };
+  }
+
+  private async getDistributionAnalytics() {
+    // Get all distributions with merchant info
+    const allDistributions = await this.distributionRepository.find({
+      relations: ['merchant'],
+      order: { distributedAt: 'DESC' }
+    });
+
+    // Format all distribution records
+    const allDistributionRecords = allDistributions.map(dist => ({
+      id: dist.id,
+      merchantId: dist.merchantId,
+      merchantName: dist.merchant?.businessName || 'Unknown',
+      totalAmount: Number(dist.totalAmount),
+      merchantAmount: Number(dist.merchantAmount),
+      platformFees: Number(dist.platformFees),
+      transactionHash: dist.transactionHash,
+      status: dist.status,
+      distributedAt: dist.distributedAt,
+    }));
+
+    // Get last distribution
+    const lastDistribution = allDistributions[0] ? {
+      id: allDistributions[0].id,
+      distributedAt: allDistributions[0].distributedAt,
+      totalAmount: Number(allDistributions[0].totalAmount),
+      transactionHash: allDistributions[0].transactionHash,
+    } : null;
+
+    // Calculate total distributed
+    const totalDistributed = allDistributions.reduce((sum, dist) => sum + Number(dist.totalAmount), 0);
+
+    // Calculate pending amounts for all merchants
+    const merchants = await this.merchantRepository.find();
+    let totalRemainingMerchant = 0;
+    let totalRemainingFees = 0;
+
+    for (const merchant of merchants) {
+      // Get distributions for this merchant
+      const distributions = await this.distributionRepository.find({
+        where: { merchantId: merchant.id }
+      });
+      
+      // Calculate expected amounts from distributions
+      const totalExpected = distributions.reduce((sum, dist) => sum + Number(dist.totalAmount), 0);
+      const merchantExpected = distributions.reduce((sum, dist) => sum + Number(dist.merchantAmount), 0);
+      const feesExpected = distributions.reduce((sum, dist) => sum + Number(dist.platformFees), 0);
+      
+      // Calculate what was actually received (completed only)
+      const completedDist = distributions.filter(d => d.status === 'completed');
+      const merchantReceived = completedDist.reduce((sum, dist) => sum + Number(dist.merchantAmount), 0);
+      const feesReceived = completedDist.reduce((sum, dist) => sum + Number(dist.platformFees), 0);
+      
+      // Calculate remaining
+      const merchantPending = merchantExpected - merchantReceived;
+      const feesPending = feesExpected - feesReceived;
+      
+      totalRemainingMerchant += merchantPending > 0 ? merchantPending : 0;
+      totalRemainingFees += feesPending > 0 ? feesPending : 0;
+    }
+
+    const totalPending = totalRemainingMerchant + totalRemainingFees;
+
+    return {
+      allDistributionRecords,
+      lastDistributionHappened: lastDistribution,
+      totalDistributed,
+      totalPending,
+      totalRemainingAmountOfAllMerchants: totalRemainingMerchant,
+      totalRemainingFeesOfPlatform: totalRemainingFees,
+    };
   }
 }

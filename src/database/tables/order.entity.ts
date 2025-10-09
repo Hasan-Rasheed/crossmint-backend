@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
 import { Merchant } from './merchant.entity';
 
 @Entity('orders')
@@ -20,5 +20,26 @@ export class Order {
   storeUrl: string;
 
   @Column({ default: 'pending' })
-  status: string;
+  status: string; // 'pending', 'paid', 'failed'
+
+  @Column({ default: 'pending' })
+  crossmintStatus: string; // 'pending', 'received', 'processing'
+
+  @Column({ nullable: true })
+  transactionHash: string;
+
+  @Column({ nullable: true })
+  customerEmail: string;
+
+  @Column({ nullable: true })
+  customerWallet: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  completedAt: Date;
 }

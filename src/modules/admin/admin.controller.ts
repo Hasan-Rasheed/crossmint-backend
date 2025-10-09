@@ -90,4 +90,10 @@ export class AdminController {
   async auditAdminHashes() {
     return await this.adminService.auditAdminHashes();
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('dashboard/analytics')
+  async getDashboardAnalytics() {
+    return await this.adminService.getDashboardAnalytics();
+  }
 }
