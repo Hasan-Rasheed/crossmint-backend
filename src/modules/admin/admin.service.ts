@@ -411,6 +411,31 @@ export class AdminService {
     }
   }
 
+  // Reactivate admin
+  async reactivateAdmin(id: number) {
+    try {
+      const admin = await this.adminRepository.findOne({ where: { id } });
+
+      if (!admin) {
+        throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
+      }
+
+      admin.isActive = true;
+      await this.adminRepository.save(admin);
+
+      this.logger.log(`Admin reactivated: ${admin.email}`);
+
+      return {
+        statusCode: 200,
+        success: true,
+        message: 'Admin reactivated successfully',
+      };
+    } catch (error) {
+      this.logger.error('Error reactivating admin:', error);
+      throw error;
+    }
+  }
+
   // Audit: Check all admins for valid hashes
   async auditAdminHashes() {
     try {

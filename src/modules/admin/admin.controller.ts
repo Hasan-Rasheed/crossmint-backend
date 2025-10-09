@@ -68,6 +68,12 @@ export class AdminController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('reactivate/:id')
+  async reactivateAdmin(@Param('id') id: string) {
+    return await this.adminService.reactivateAdmin(parseInt(id));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('cleanup-otps')
   async cleanupOtps() {
     try {
