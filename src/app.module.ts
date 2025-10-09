@@ -11,6 +11,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WooModule } from './modules/woo/woo.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { PluginModule } from './modules/plugin/plugin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     WooModule,
     AdminModule,
     OrdersModule,
+    PluginModule,
   ],
   controllers: [AppController],
   providers: [AppService],

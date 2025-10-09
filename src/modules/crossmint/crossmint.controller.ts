@@ -29,12 +29,12 @@ export class CrossmintController {
   @ApiOperation({ summary: 'Initiate a purchase order via Crossmint' })
   @ApiBody({ type: InitiatePaymentDto })
   initiatePayment(@Body() purchaseData: InitiatePaymentDto) {
-    console.log("purchaseData ==>", purchaseData)
+    // console.log("purchaseData ==>", purchaseData)
     return this.crossmintService.initiatePayment(purchaseData);
   }
+ 
 
-
-  //  https://16a90e813892.ngrok-free.app/crossmint/webhook
+  //   https://aca9ee8dc777.ngrok-free.app/crossmint/webhook
 
   @Post('webhook')
   async handleWebhook(
@@ -46,30 +46,60 @@ export class CrossmintController {
     try {
       console.log('calling webhook');
       // ✅ Step 1: Verify signature (recommended, see step 3)
-      console.log('Signature:', signature);
+      // console.log('Signature:', signature);
 
       // ✅ Step 2: Handle event type
       const eventType = body?.type;
       console.log('event type', eventType);
-      console.log('Received Crossmint event:', eventType);
-      console.log('Event data:', body.data);
+      // console.log('Received Crossmint event:', eventType);
+      // console.log('Event data:', body.data);
 
 
       if(eventType == 'orders.payment.succeeded') {
+
       const order = await this.orderService.findByCrossmintId(body.data.orderId);
-      console.log('order', order);
+      // console.log('order', order);
+ 
 
-
-    const orderPaidResult = await this.WooService.markOrderPaid(Number(order.wooId), 'processing')
-    console.log('order paid result', orderPaidResult);
+    // const orderPaidResult = await this.WooService.markOrderPaid(Number(order.wooId), 'processing')
+    // console.log('order paid result', orderPaidResult);
 
 
     // update order to paid in our db
 
-     const createOrder = await this.orderService.updateStatusByWooId(order.wooId, 'processing'); 
+     const createOrder = await this.orderService.updateStatusByWooId(order.wooId, 'paid'); 
 
-    console.log('create order', createOrder);
+    //  console.log('params in webhook', order.wooId)
+    //  console.log('create order', createOrder);
+
+       const updateStatus = await fetch(`${order.storeUrl}/wp-json/myplugin/v1/payment-callback`, {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify({ order_id: order.wooId, status: 'completed' }),
+       });
+// console.log('update status', updateStatus)
+      
+
       }
+
+      if(eventType == 'nfts.create.succeeded') {
+        console.log('NFT minted successfully:', body.data);
+      }
+
+      if(eventType == 'orders.payment.failed') {
+        const order = await this.orderService.findByCrossmintId(body.data.orderId);
+        const createOrder = await this.orderService.updateStatusByWooId(order.wooId, 'failed'); 
+      }
+
+
+
+      // TODO
+      // add event for payment failed just update db 
+      // updateStatusByWooId
+      // plugin set up
+
       
 
       // switch (eventType) {

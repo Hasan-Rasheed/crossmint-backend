@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import { createHmac } from 'crypto';
 
 @Injectable()
 export class WooService {
@@ -30,8 +31,9 @@ export class WooService {
   }
 
   async markOrderPaid(orderId: number, status: string) {
+    console.clear();
     console.log('calling mark order paid', orderId)
-    console.log('env', process.env.WORDPRESS_USERNAME, process.env.WORDPRESS_PASSWORD)
+    // console.log('env', process.env.WORDPRESS_USERNAME, process.env.WORDPRESS_PASSWORD)
     try {
     const orderPaid = await axios.put(
       `http://localhost:10003/wp-json/wc/v3/orders/${orderId}`,
@@ -50,6 +52,26 @@ export class WooService {
     } catch(err) {
       console.error('Error marking order as paid:', err);
     }
+ 
+ 
+      try {
+    const ngrokMerchantShopUrl = 'http://localhost:10003'; // Replace with actual merchant shop URL
+    const webhookUrl = `${ngrokMerchantShopUrl}/wp-json/my-custom-gateway/v1/payment-callback`;
+
+    const res = await axios.post(webhookUrl, {
+      order_id: orderId,
+      status: status,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        // 'X-Plugin-Signature': createHmac('sha256', JSON.stringify({ order_id: orderId, status: status }), 'sharedSecret').digest('hex'), // optional
+      },
+    });
+
+    console.log('Webhook response:', res.data);
+  } catch (err) {
+    console.error('Error calling merchant webhook:', err.message);
+  }
 
   }
 

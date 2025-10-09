@@ -126,7 +126,7 @@ export class CrossmintService {
   }
 
   async initiatePayment(purchaseData: InitiatePaymentDto) {
-    console.log("Data ==>" , purchaseData)
+    // console.log("Data ==>" , purchaseData)
     const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
     
     // Fetch merchant by ID to get collection ID
@@ -173,7 +173,7 @@ export class CrossmintService {
       }]
     };
 
-    console.log('Initiating purchase order:', order.lineItems[0].callData);
+    // console.log('Initiating purchase order:', order.lineItems[0].callData);
     // console.log("Call data ==>", order.lineItems[0].callData)
 
     try {
@@ -193,7 +193,7 @@ export class CrossmintService {
         //  const error = await response.json();
          throw new Error(res.error);
         }
-        console.log('res from crossmint', res);
+        // console.log('res from crossmint', res);
         // add an entry to the db
     // store
     // orders ka table
@@ -211,7 +211,7 @@ export class CrossmintService {
       status: 'awaiting-payment',
     });
 
-    console.log('create order', createOrder);
+    // console.log('create order', createOrder);
 
  
     // webhook mai
