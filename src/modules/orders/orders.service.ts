@@ -15,7 +15,7 @@ export class OrderService {
   ) {}
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
-    const { merchantId, crossmintId, wooId, storeUrl, status } = createOrderDto;
+    const { merchantId, crossmintId, wooId, storeUrl, status, metadata } = createOrderDto;
 
     const merchant = await this.merchantRepository.findOne({
       where: { id: merchantId },
@@ -29,6 +29,7 @@ export class OrderService {
       wooId,
       storeUrl,
       status,
+      metadata,
     });
 
     return await this.orderRepository.save(order);

@@ -15,4 +15,6 @@ export class CreateOrderDto {
 
   @IsString()
   status: string;
+
+  metadata: any;
 }

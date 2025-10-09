@@ -52,4 +52,6 @@ export class InitiatePaymentDto {
 
   @IsString()
   orderId: string;
+
+  metadata: any;
 } 

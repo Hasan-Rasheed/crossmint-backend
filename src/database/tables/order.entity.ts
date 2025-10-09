@@ -42,4 +42,7 @@ export class Order {
 
   @Column({ nullable: true })
   completedAt: Date;
+
+  @Column({ type: 'json', nullable: true })
+  metadata: any;
 }

@@ -34,7 +34,7 @@ export class CrossmintController {
   }
  
 
-  //   https://aca9ee8dc777.ngrok-free.app/crossmint/webhook
+  //   https://4f4c4c994fa1.ngrok-free.app/crossmint/webhook
 
   @Post('webhook')
   async handleWebhook(
@@ -89,8 +89,10 @@ export class CrossmintController {
       }
 
       if(eventType == 'orders.payment.failed') {
+        console.log('Payment failed for order:', body.data);
         const order = await this.orderService.findByCrossmintId(body.data.orderId);
         const createOrder = await this.orderService.updateStatusByWooId(order.wooId, 'failed'); 
+        console.log('create order ', createOrder);
       }
 
 

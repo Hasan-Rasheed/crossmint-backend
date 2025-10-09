@@ -199,7 +199,7 @@ export class CrossmintService {
     // orders ka table
     // merchant id, woo commerce order id, crossmint order id, status = 'awaiting-payment' and store url
 
-        const { merchantId, storeUrl, orderId } = purchaseData;
+        const { merchantId, storeUrl, orderId, metadata } = purchaseData;
 
       console.log('params', merchantId, res.order.orderId, orderId, storeUrl);
 
@@ -209,6 +209,7 @@ export class CrossmintService {
       wooId: orderId,
       storeUrl: storeUrl,
       status: 'awaiting-payment',
+      metadata: metadata,
     });
 
     // console.log('create order', createOrder);
