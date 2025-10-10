@@ -204,15 +204,15 @@ export class CrossmintService {
       console.log('params', merchantId, res.order.orderId, orderId, storeUrl);
 
      const createOrder = await this.orderService.create({
-      merchantId: Number(merchantId),
+      merchantId: Number(merchant.id),
       crossmintId: res.order.orderId,
       wooId: orderId,
       storeUrl: storeUrl,
-      status: 'awaiting-payment',
+      status: 'awaiting-payment', 
       metadata: metadata,
     });
 
-    // console.log('create order', createOrder);
+    console.log('create order', createOrder);
 
  
     // webhook mai
