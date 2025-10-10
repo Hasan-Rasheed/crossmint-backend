@@ -21,12 +21,18 @@ import { PluginModule } from './modules/plugin/plugin.module';
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
+      // type: 'postgres',
+      // host: 'localhost',
+      // port: 5432,
+      // username: 'postgres',
+      // password: process.env.DB_PASSWORD || 'root',
+      // database: 'crossmint',
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: process.env.DB_PASSWORD || 'root',
-      database: 'crossmint',
+      url: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false, // Required for Heroku SSL
+      },
+      autoLoadEntities: true,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
