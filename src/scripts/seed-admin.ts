@@ -7,12 +7,17 @@ dotenv.config();
 
 const seedFirstAdmin = async () => {
   const dataSource = new DataSource({
+    // type: 'postgres',
+    // host: 'localhost',
+    // port: 5432,
+    // username: 'postgres',
+    // password: process.env.DB_PASSWORD || 'root',
+    // database: 'crossmint',
     type: 'postgres',
-    host: 'localhost',
-    port: 5432,
-    username: 'postgres',
-    password: process.env.DB_PASSWORD || 'root',
-    database: 'crossmint',
+      url: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false, // Required for Heroku SSL
+      },
     entities: [__dirname + '/../database/tables/*.entity{.ts,.js}'],
     synchronize: false,
   });
