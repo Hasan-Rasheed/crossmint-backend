@@ -54,17 +54,17 @@ export class MerchantsController {
   })
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async create(
-    @UploadedFile() file: Express.Multer.File,
+    // @UploadedFile() file: Express.Multer.File,
     @Body() createMerchantDto: CreateMerchantDto,
   ) {
     console.log('==============================')
     console.log('calling create api')
     // console.log('Body:', body);
-    console.log('File:', file);
+    // console.log('File:', file);
 
     const merchant = await this.merchantsService.create(
       createMerchantDto,
-      file,
+      // file,
     );
     const token = await this.authService.createToken(merchant);
     return {

@@ -33,33 +33,35 @@ export class MerchantsService {
     this.wallet = new ethers.Wallet(privateKey, this.provider);
   }
 
-  async create(merchantData: CreateMerchantDto, file?: Express.Multer.File) {
+  async create(merchantData: CreateMerchantDto, 
+    // file?: Express.Multer.File
+  ) {
     try {
-      console.log('IN create service file [][][]', file);
+      // console.log('IN create service file [][][]', file);
 
-      let imageIpfsHash = null;
-      if (file) {
-        console.log('in the if')
-        const formData = new FormData();
-        formData.append('file', file.buffer, { filename: file.originalname });
+      // let imageIpfsHash = null;
+      // if (file) {
+      //   console.log('in the if')
+      //   const formData = new FormData();
+      //   formData.append('file', file.buffer, { filename: file.originalname });
 
-        const pinataRes = await axios.post(
-          'https://api.pinata.cloud/pinning/pinFileToIPFS',
-          formData,
-          {
-            maxBodyLength: Infinity,
-            headers: {
-              ...formData.getHeaders(), // IMPORTANT: get proper headers from FormData
-              pinata_api_key: this.pinataApiKey,
-              pinata_secret_api_key: this.pinataSecretApiKey,
-            },
-          },
-        );
+      //   const pinataRes = await axios.post(
+      //     'https://api.pinata.cloud/pinning/pinFileToIPFS',
+      //     formData,
+      //     {
+      //       maxBodyLength: Infinity,
+      //       headers: {
+      //         ...formData.getHeaders(), // IMPORTANT: get proper headers from FormData
+      //         pinata_api_key: this.pinataApiKey,
+      //         pinata_secret_api_key: this.pinataSecretApiKey,
+      //       },
+      //     },
+      //   );
 
-        imageIpfsHash = pinataRes.data.IpfsHash; // Save IPFS hash
-        console.log('Uploaded to IPFS:', imageIpfsHash);
-        console.log('pinata res', pinataRes.data);
-      }
+      //   imageIpfsHash = pinataRes.data.IpfsHash; // Save IPFS hash
+      //   console.log('Uploaded to IPFS:', imageIpfsHash);
+      //   console.log('pinata res', pinataRes.data);
+      // }
 
       // 1. Use factory contract to deploy escrow
       const factoryContract = new ethers.Contract(
@@ -113,10 +115,13 @@ export class MerchantsService {
       const collection = await this.crossmintService.createCollection(savedMerchant);
       console.log('Collection of merchant', collection);
       savedMerchant.collectionId = collection.id;
-      if (imageIpfsHash) {
-        savedMerchant.imageIpfsHash = imageIpfsHash;
-      }
-      const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
+      // if (imageIpfsHash) {
+      //   savedMerchant.imageIpfsHash = imageIpfsHash;
+      // }
+      // const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
+      const imageURL =
+      'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
+
       console.log("image url", imageURL)
       console.log("collection Id ", collection.id, " Merchant ID ", savedMerchant)
       const updatedMerchant = await this.merchantRepository.save(savedMerchant);
