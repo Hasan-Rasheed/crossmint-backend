@@ -530,11 +530,12 @@ export class AdminService {
       merchants.map(async (merchant) => {
         // Get orders using relation
         const allOrders = await this.orderRepository.find({ 
-          where: { merchant: { id: merchant.id } },
+          where: { merchant: { id: merchant.id } }, 
           relations: ['merchant']
         });
         
         const totalOrdersCreated = allOrders.length;
+        console.log('all orders', allOrders);
         
         const paidOrders = allOrders.filter(order => order.status === 'paid');
         const totalOrdersPaid = paidOrders.length;
@@ -564,6 +565,7 @@ export class AdminService {
           storeURL: merchant.storeUrl,
           totalOrdersCreated,
           totalOrdersPaid,
+          totalOrders: allOrders,
           totalShareAmount: merchantShare, // 90% of total paid by customers
           totalFeesGenerated: platformFees, // 10% of total paid by customers
           actuallyReceivedFromPayouts: actuallyReceived,

@@ -59,6 +59,7 @@ export class OrderService {
 
     // Update the status
     order.status = status;
+    order.crossmintStatus = status;
 
     // Save the updated order
     return await this.orderRepository.save(order);
