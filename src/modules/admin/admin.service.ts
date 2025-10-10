@@ -38,6 +38,8 @@ export class AdminService {
   // Generate verifiable hash for admin
   private generateAdminHash(email: string, createdAt: Date): string {
     const data = `${email}:${createdAt.toISOString()}:official`;
+    console.log("this hash secret ", this.HASH_SECRET )
+    console.log("process env" , process.env.ADMIN_HASH_SECRET)
     return crypto
       .createHmac('sha256', this.HASH_SECRET)
       .update(data)

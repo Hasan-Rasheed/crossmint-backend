@@ -54,6 +54,8 @@ const seedFirstAdmin = async () => {
 
     // Generate verifiable hash using HMAC (same as admin.service.ts)
     const data = `${savedAdmin.email}:${savedAdmin.createdAt.toISOString()}:official`;
+    console.log("this hash secret ", hashSecret )
+    console.log("process env" , process.env.ADMIN_HASH_SECRET)
     const verifiableHash = crypto
       .createHmac('sha256', hashSecret)
       .update(data)
