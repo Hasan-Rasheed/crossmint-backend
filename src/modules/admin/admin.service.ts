@@ -47,6 +47,8 @@ export class AdminService {
   // Verify admin hash is legitimate
   private verifyAdminHash(email: string, hash: string, createdAt: Date): boolean {
     const expectedHash = this.generateAdminHash(email, createdAt);
+    console.log("expectedHash ", expectedHash)
+    console.log("incoming hash ", hash)
     return hash === expectedHash;
   }
 
@@ -129,7 +131,7 @@ export class AdminService {
           HttpStatus.NOT_FOUND,
         );
       }
-
+      console.log("Admin Details ", admin)
       // Verify admin hash to ensure legitimate creation
       const isValidHash = this.verifyAdminHash(
         admin.email,
