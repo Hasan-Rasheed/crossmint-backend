@@ -6,7 +6,7 @@ import { Order } from './order.entity';
 export class Merchant {
   @PrimaryGeneratedColumn()
   id: number;
- 
+
   @Column()
   @ApiProperty({
     example: 'CoffeeShopX',
@@ -38,7 +38,7 @@ export class Merchant {
   @Column({ nullable: true })
   @ApiProperty({
     example: '726.......',
-    description: 'Hash of the image stored on IPFS'
+    description: 'Hash of the image stored on IPFS',
   })
   imageIpfsHash: string;
 
@@ -59,13 +59,13 @@ export class Merchant {
   @OneToMany(() => Template, (template) => template.merchant)
   templates: Template[];
 
-  @Column({ nullable: true })
+  @Column('text', { array: true, nullable: true })
   @ApiProperty({
     example: 'https://coffeeshopx.com',
     description: 'Store URL',
   })
-  storeUrl: string;
+  storeUrl: string[];
 
-  @OneToMany(() => Order, order => order.merchant)
+  @OneToMany(() => Order, (order) => order.merchant)
   orders: Order[];
 }

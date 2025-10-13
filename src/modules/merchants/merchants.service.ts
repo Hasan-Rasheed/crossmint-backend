@@ -71,6 +71,7 @@ export class MerchantsService {
       );
       const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
+          storeUrl: [merchantData.storeUrl]
       });
       console.log('merchant entity created', merchantEntity);
       // let savedMerchant;
