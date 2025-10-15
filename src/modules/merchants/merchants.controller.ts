@@ -128,13 +128,13 @@ export class MerchantsController {
   @Put('update-store')
   @UseGuards(AuthGuard('jwt'))
   async updateStore(@Req() req, @Body() body: any) {
+    console.log('in update store')
     const userId = req.user.id;
-    const { oldStoreUrl, newStoreUrl, newReceivingAddress } = body;
+    const { storeUrl, newReceivingAddress } = body;
 
     return this.merchantsService.updateStore(
       userId,
-      oldStoreUrl,
-      newStoreUrl,
+      storeUrl,
       newReceivingAddress,
     );
   }

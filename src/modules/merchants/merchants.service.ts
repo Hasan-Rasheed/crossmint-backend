@@ -221,11 +221,10 @@ export class MerchantsService {
 
   async updateStore(
   userId: number,
-  oldStoreUrl: string,
-  newStoreUrl?: string,
-  newReceivingAddress?: string,
+  storeUrl: string,
+  newReceivingAddress: string,
 ) {
-  console.log('updateStore hit');
+  console.log('updateStore hit', storeUrl);
 
   const merchant = await this.merchantRepository.findOne({
     where: { id: userId },
@@ -241,22 +240,20 @@ export class MerchantsService {
 
   // ✅ Find store to update
   const storeIndex = merchant.stores.findIndex(
-    (store) => store.storeUrl === oldStoreUrl,
+    (store) => store.storeUrl === storeUrl,
   );
+
+
 
   if (storeIndex === -1) {
     throw new NotFoundException('Store URL not found');
   }
 
   // ✅ Clone the store and update only provided fields
-  const updatedStore = {
-    ...merchant.stores[storeIndex],
-    storeUrl: newStoreUrl || merchant.stores[storeIndex].storeUrl,
-    receivingAddress:
-      newReceivingAddress || merchant.stores[storeIndex].receivingAddress,
-  };
+  merchant.stores[storeIndex].receivingAddress = newReceivingAddress;
 
-  merchant.stores[storeIndex] = updatedStore;
+
+  // merchant.stores[storeIndex] = updatedStore;
 
   await this.merchantRepository.save(merchant);
 
