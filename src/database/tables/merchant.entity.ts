@@ -68,4 +68,17 @@ export class Merchant {
 
   @OneToMany(() => Order, (order) => order.merchant)
   orders: Order[];
+
+  @Column('jsonb', { nullable: true, default: [] })
+  @ApiProperty({
+    example: [
+      { storeUrl: 'https://coffeeshopx.com', receivingAddress: '0xabc123...' },
+      {
+        storeUrl: 'https://store2.coffeeshopx.com',
+        receivingAddress: '0xdef456...',
+      },
+    ],
+    description: 'Array of store URLs and corresponding receiving addresses',
+  })
+  stores: { storeUrl: string; receivingAddress: string }[];
 }

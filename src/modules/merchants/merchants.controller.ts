@@ -15,6 +15,7 @@ import {
   Put,
   HttpStatus,
   HttpException,
+  Req,
 } from '@nestjs/common';
 import { MerchantsService } from './merchants.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
@@ -25,6 +26,7 @@ import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { Merchant } from 'src/database/tables/merchant.entity';
+import { CurrentUser } from '../auth/decorators/merchant.decorator';
 
 @Controller('merchants')
 export class MerchantsController {
@@ -32,6 +34,26 @@ export class MerchantsController {
     private readonly merchantsService: MerchantsService,
     private authService: AuthService,
   ) {}
+
+  @Post('validate-license')
+  @ApiOperation({ summary: 'Validate merchant API key' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: { type: 'string', example: 'your-api-key' },
+      },
+    },
+  })
+  async validateApiKey(@Body() body) {
+    console.log('body', body);
+    return {
+      valid: true,
+      license_type: 'premium',
+      expires_at: '2026-12-31',
+      customer_email: 'customer@email.com',
+    };
+  }
 
   @Post()
   @ApiOperation({ summary: 'Onboard a new merchant' })
@@ -57,8 +79,8 @@ export class MerchantsController {
     // @UploadedFile() file: Express.Multer.File,
     @Body() createMerchantDto: CreateMerchantDto,
   ) {
-    console.log('==============================')
-    console.log('calling create api')
+    console.log('==============================');
+    console.log('calling create api');
     // console.log('Body:', body);
     // console.log('File:', file);
 
@@ -73,6 +95,50 @@ export class MerchantsController {
     };
   }
 
+  @Get()
+  @UseGuards(AuthGuard('jwt'))
+  async getMerchant(@CurrentUser() user: Merchant) {
+    // console.clear();
+    // console.log('got request', merchantId);
+    console.log('user [][][][][][]', user);
+    const merchantId = user.id;
+    const merchant = await this.merchantsService.findMerchant(
+      String(merchantId),
+    );
+    if (!merchant) {
+      throw new HttpException('Merchant not found', HttpStatus.NOT_FOUND);
+    }
+    return merchant;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('add-store-url')
+  async addStoreUrl(
+    @CurrentUser() user: any,
+    @Body('storeUrl') storeUrl: string,
+    @Body('receivingAddress') receivingAddress: string,
+  ) {
+    return this.merchantsService.addStoreUrl(
+      user.id,
+      storeUrl,
+      receivingAddress,
+    );
+  }
+
+  @Put('update-store')
+  @UseGuards(AuthGuard('jwt'))
+  async updateStore(@Req() req, @Body() body: any) {
+    const userId = req.user.id;
+    const { oldStoreUrl, newStoreUrl, newReceivingAddress } = body;
+
+    return this.merchantsService.updateStore(
+      userId,
+      oldStoreUrl,
+      newStoreUrl,
+      newReceivingAddress,
+    );
+  }
+
   @Put()
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async updateMerchant(
@@ -80,7 +146,6 @@ export class MerchantsController {
     @Query('businessName') businessName: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-   
     const updatedMerchant = await this.merchantsService.updateMerchant(
       businessName,
       updateMerchantDto,

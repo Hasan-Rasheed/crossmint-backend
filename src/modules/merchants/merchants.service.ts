@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,7 +23,8 @@ export class MerchantsService {
   private wallet: ethers.Wallet;
   private pinataApiKey = process.env.PINATA_API_KEY;
   private pinataSecretApiKey = process.env.PINATA_API_SECRET;
-  private readonly factoryContractAddress = process.env.FACTORY_CONTRACT_ADDRESS;
+  private readonly factoryContractAddress =
+    process.env.FACTORY_CONTRACT_ADDRESS;
 
   constructor(
     @InjectRepository(Merchant)
@@ -33,7 +39,8 @@ export class MerchantsService {
     this.wallet = new ethers.Wallet(privateKey, this.provider);
   }
 
-  async create(merchantData: CreateMerchantDto, 
+  async create(
+    merchantData: CreateMerchantDto,
     // file?: Express.Multer.File
   ) {
     try {
@@ -71,7 +78,13 @@ export class MerchantsService {
       );
       const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
-          storeUrl: [merchantData.storeUrl]
+        storeUrl: [merchantData.storeUrl],
+        stores: [
+          {
+            storeUrl: merchantData.storeUrl,
+            receivingAddress: merchantData.receivingAddress,
+          },
+        ],
       });
       console.log('merchant entity created', merchantEntity);
       // let savedMerchant;
@@ -83,10 +96,10 @@ export class MerchantsService {
       // }
 
       const savedMerchant = await this.merchantRepository.save(merchantEntity);
- 
+
       console.log('merchant saved', savedMerchant);
       const merchantId = savedMerchant.id;
-      console.log('before deployment',typeof merchantId);
+      console.log('before deployment', typeof merchantId);
       // Generate merchantId (bytes32) - you might want to use merchant name or a hash
       // const merchantId = ethers.id(merchantData.businessName + merchantData.receivingAddress);
       // console.log("Merchant ID", merchantId)
@@ -98,7 +111,9 @@ export class MerchantsService {
       // );
       // console.log('Escrow Address (simulated):', escrowAddress);
       console.log('merchant id', merchantId, typeof merchantId);
-      const bytes32MerchantId = ethers.encodeBytes32String(merchantId.toString())
+      const bytes32MerchantId = ethers.encodeBytes32String(
+        merchantId.toString(),
+      );
       // Now execute the actual deployment
       const deploytx = await factoryContract.deployEscrow(
         bytes32MerchantId, // merchantId (bytes32)
@@ -106,14 +121,18 @@ export class MerchantsService {
         process.env.PAYMENT_TOKEN_ADDRESS, // paymentTokenAddress
       );
       console.log('After deployment');
-      
+
       // Wait for transaction to be mined
-      const escrowAddress = await this.getDeployedEscrowAddress(factoryContract, deploytx);
-      console.log('Transaction confirmed',escrowAddress);
+      const escrowAddress = await this.getDeployedEscrowAddress(
+        factoryContract,
+        deploytx,
+      );
+      console.log('Transaction confirmed', escrowAddress);
       // create collection against merchant
       savedMerchant.contractAddress = escrowAddress.toString();
-     
-      const collection = await this.crossmintService.createCollection(savedMerchant);
+
+      const collection =
+        await this.crossmintService.createCollection(savedMerchant);
       console.log('Collection of merchant', collection);
       savedMerchant.collectionId = collection.id;
       // if (imageIpfsHash) {
@@ -121,20 +140,29 @@ export class MerchantsService {
       // }
       // const imageURL = `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
       const imageURL =
-      'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
+        'https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSbsivgTsjEmdUEIW_UrzOA8EJY1IJbIWaJd-ONdBMAIYqvYYUUjy_JSwFqgocI5zBpLEFJXEdogUtG5MeBCXQE8bPnmSAqVidZ-zEn7HVi';
 
-      console.log("image url", imageURL)
-      console.log("collection Id ", collection.id, " Merchant ID ", savedMerchant)
+      console.log('image url', imageURL);
+      console.log(
+        'collection Id ',
+        collection.id,
+        ' Merchant ID ',
+        savedMerchant,
+      );
       const updatedMerchant = await this.merchantRepository.save(savedMerchant);
-      const template = await this.crossmintService.createTemplate(collection.id, updatedMerchant.id, {
-        name: `Purchase Receipt - ${updatedMerchant.businessName}`,
-        description: "NFT Minted Purchase Receipt",
-        image: imageURL,
-        symbol: updatedMerchant.businessName,
-      });
+      const template = await this.crossmintService.createTemplate(
+        collection.id,
+        updatedMerchant.id,
+        {
+          name: `Purchase Receipt - ${updatedMerchant.businessName}`,
+          description: 'NFT Minted Purchase Receipt',
+          image: imageURL,
+          symbol: updatedMerchant.businessName,
+        },
+      );
       console.log('Template of merchant', template);
       // Add collection ID to merchant entity
-      
+
       return {
         statusCode: 201,
         success: true,
@@ -154,28 +182,123 @@ export class MerchantsService {
     }
   }
 
+  async addStoreUrl(userId: number, storeUrl: string, receivingAddress: string) {
+    console.log('add store url hit', storeUrl, receivingAddress)
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException('Merchant not found');
+    }
+
+    if (!merchant.stores) {
+    merchant.stores = [];
+  }
+
+  // ✅ Check if this store already exists
+  const existingStoreIndex = merchant.stores.findIndex(
+    (store) => store.storeUrl === storeUrl,
+  );
+
+  if (existingStoreIndex !== -1) {
+    // ✅ Update the receiving address for existing store
+    merchant.stores[existingStoreIndex].receivingAddress = receivingAddress;
+  } else {
+    // ✅ Add a new store entry
+    merchant.stores.push({ storeUrl, receivingAddress });
+  }
+
+  console.log('updated stores:', merchant.stores);
+
+  await this.merchantRepository.save(merchant);
+
+    return {
+      message: 'Store URL added successfully',
+      storeUrl: merchant.stores,
+    };
+  }
+
+  async updateStore(
+  userId: number,
+  oldStoreUrl: string,
+  newStoreUrl?: string,
+  newReceivingAddress?: string,
+) {
+  console.log('updateStore hit');
+
+  const merchant = await this.merchantRepository.findOne({
+    where: { id: userId },
+  });
+
+  if (!merchant) {
+    throw new NotFoundException('Merchant not found');
+  }
+
+  if (!merchant.stores || merchant.stores.length === 0) {
+    throw new NotFoundException('No stores found for this merchant');
+  }
+
+  // ✅ Find store to update
+  const storeIndex = merchant.stores.findIndex(
+    (store) => store.storeUrl === oldStoreUrl,
+  );
+
+  if (storeIndex === -1) {
+    throw new NotFoundException('Store URL not found');
+  }
+
+  // ✅ Clone the store and update only provided fields
+  const updatedStore = {
+    ...merchant.stores[storeIndex],
+    storeUrl: newStoreUrl || merchant.stores[storeIndex].storeUrl,
+    receivingAddress:
+      newReceivingAddress || merchant.stores[storeIndex].receivingAddress,
+  };
+
+  merchant.stores[storeIndex] = updatedStore;
+
+  await this.merchantRepository.save(merchant);
+
+  return {
+    message: 'Store updated successfully',
+    stores: merchant.stores,
+  };
+}
+
+  async findMerchant(merchantId: string) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: parseInt(merchantId) },
+      relations: ['orders'],
+    });
+    if (!merchant) {
+      throw new HttpException('Merchant not found', HttpStatus.NOT_FOUND);
+    }
+    return merchant;
+  }
+
   async getDeployedEscrowAddress(factoryContract, txResponse) {
     // Wait for transaction to be mined
     const receipt = await txResponse.wait();
-  
+
     // Create an ethers.js Interface from your factory contract ABI
     const iface = new Interface(factoryContract.interface.fragments);
-  
+
     // Parse logs to find the EscrowDeployed event
     for (const log of receipt.logs) {
       try {
         const parsed = iface.parseLog(log);
-        if (parsed?.name === "EscrowDeployed") {
+        if (parsed?.name === 'EscrowDeployed') {
           const escrowAddress = parsed.args.escrowAddress;
-          console.log("✅ Escrow deployed at:", escrowAddress);
+          console.log('✅ Escrow deployed at:', escrowAddress);
           return escrowAddress;
         }
       } catch (err) {
         // Ignore logs that don't match this interface
       }
     }
-  
-    throw new Error("❌ EscrowDeployed event not found in transaction logs");
+
+    throw new Error('❌ EscrowDeployed event not found in transaction logs');
   }
   async updateMerchant(
     businessName: string,
