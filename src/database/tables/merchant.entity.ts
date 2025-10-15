@@ -59,12 +59,14 @@ export class Merchant {
   @OneToMany(() => Template, (template) => template.merchant)
   templates: Template[];
 
-  @Column('text', { array: true, nullable: true })
+  @Column('text', { 
+    // array: true, 
+    nullable: true })
   @ApiProperty({
     example: 'https://coffeeshopx.com',
     description: 'Store URL',
   })
-  storeUrl: string[];
+  storeUrl: string;
 
   @OneToMany(() => Order, (order) => order.merchant)
   orders: Order[];

@@ -7,7 +7,7 @@ import axios from 'axios';
 import { Merchant } from 'src/database/tables/merchant.entity';
 import { ConfigService } from '@nestjs/config';
 import { Template } from 'src/database/tables/template.entity';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OrderService } from '../orders/orders.service';
 
@@ -126,15 +126,24 @@ export class CrossmintService {
   }
 
   async initiatePayment(purchaseData: InitiatePaymentDto) {
-    // console.log("Data ==>" , purchaseData)
+    console.log("Data ==>" , purchaseData)
     const API_KEY = process.env.CROSSMINT_STAGING_API_KEY;
     
     // Fetch merchant by ID to get collection ID
-    const merchant = await this.merchantRepository.findOne({
-      // where: { id: parseInt(purchaseData.merchantId) }
-      where: { storeUrl: purchaseData.storeUrl }
+    // const merchant = await this.merchantRepository.findOne({
+    //   // where: { id: parseInt(purchaseData.merchantId) }
+    //   where: { storeUrl: purchaseData.storeUrl }
 
-    });
+    // });
+
+    const merchant = await this.merchantRepository.findOne({
+  where: {
+    stores: Raw(
+      (alias) =>
+        `${alias} @> '[{"storeUrl": "${purchaseData.storeUrl}"}]'::jsonb`
+    ),
+  },
+});
     console.log("Merchat ", merchant)
     if (!merchant || !merchant.collectionId) {
       throw new HttpException(

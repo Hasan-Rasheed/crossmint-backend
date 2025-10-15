@@ -38,7 +38,7 @@ export class MerchantsService {
     }
     this.wallet = new ethers.Wallet(privateKey, this.provider);
   }
-
+ 
   async create(
     merchantData: CreateMerchantDto,
     // file?: Express.Multer.File
@@ -70,6 +70,8 @@ export class MerchantsService {
       //   console.log('pinata res', pinataRes.data);
       // }
 
+      console.log('in the service')
+
       // 1. Use factory contract to deploy escrow
       const factoryContract = new ethers.Contract(
         this.factoryContractAddress || '',
@@ -78,7 +80,7 @@ export class MerchantsService {
       );
       const merchantEntity = await this.merchantRepository.create({
         ...merchantData,
-        storeUrl: [merchantData.storeUrl],
+        // storeUrl: [merchantData.storeUrl],
         stores: [
           {
             storeUrl: merchantData.storeUrl,

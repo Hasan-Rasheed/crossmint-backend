@@ -29,7 +29,7 @@ export class CrossmintController {
   @ApiOperation({ summary: 'Initiate a purchase order via Crossmint' })
   @ApiBody({ type: InitiatePaymentDto })
   initiatePayment(@Body() purchaseData: InitiatePaymentDto) {
-    // console.log("purchaseData ==>", purchaseData)
+    console.log("purchaseData ==>", purchaseData)
     return this.crossmintService.initiatePayment(purchaseData);
   }
  
